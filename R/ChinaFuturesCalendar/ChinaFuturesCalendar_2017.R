@@ -14,7 +14,7 @@
 ## =============================================================================
 
 rm(list = ls())
-setwd('/home/william/Documents/myData')
+setwd('/home/fl/myData')
 ## =============================================================================
 ## 需要安装的 package: bizdays
 pkgs <- c("data.table", 'bizdays', 'magrittr')
