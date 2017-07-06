@@ -23,13 +23,14 @@
 rm(list = ls())
 logMainScript <- c("CiticPublic2mysql_00_main.R")
 
+setwd('/home/fl/myData/')
 suppressMessages({
-  source('/home/fl/myData/R/Rconfig/myInit.R')
-  source('/home/fl/myData/R/Rconfig/myFread.R')
-  source('/home/fl/myData/R/Rconfig/myDay.R')
-  source('/home/fl/myData/R/Rconfig/myBreakTime.R')
-  source('/home/fl/myData/R/Rconfig/dt2DailyBar.R')
-  source('/home/fl/myData/R/Rconfig/dt2MinuteBar.R')
+  source('./R/Rconfig/myInit.R')
+  source('./R/Rconfig/myFread.R')
+  source('./R/Rconfig/myDay.R')
+  source('./R/Rconfig/myBreakTime.R')
+  source('./R/Rconfig/dt2DailyBar.R')
+  source('./R/Rconfig/dt2MinuteBar.R')
 })
 ## =============================================================================
 ## 是否要包含历史的数据
