@@ -14,6 +14,7 @@
 ## 夜盘
 ## dt_night <- dt2DailyBar(dt,"night")
 dt2DailyBar <- function(x, daySector){
+  #-----------------------------------------------------------------------------
   if(daySector == "allday"){
     temp <- x
   }else{
@@ -23,40 +24,40 @@ dt2DailyBar <- function(x, daySector){
       temp <- x[!(UpdateTime %between% c("08:30:00", "15:30:00"))]
     }
   }
-
   #-----------------------------------------------------------------------------
-  temp.res <- temp %>%
+  #-----------------------------------------------------------------------------
+  tempRes <- temp %>%
     .[,.SD[,.(
-      OpenPrice = .SD[Volume != 0][1, ifelse(is.na(OpenPrice) | OpenPrice ==0, LastPrice, OpenPrice)],
+      OpenPrice = .SD[Volume != 0][1, ifelse(is.na(OpenPrice) | OpenPrice == 0, LastPrice, OpenPrice)],
       HighPrice = ifelse(all(is.na(.SD$HighestPrice)) | sum(.SD$HighestPrice, na.rm=TRUE) == 0,
-                         max(.SD[Volume != 0]$LastPrice, na.rm = TRUE),
-                         max(.SD[Volume != 0]$HighestPrice, na.rm = TRUE)),
+                         max(.SD[Volume != 0]$LastPrice, na.rm=TRUE),
+                         max(.SD[Volume != 0]$HighestPrice, na.rm=TRUE)),
       LowPrice  = ifelse(all(is.na(.SD$LowestPrice)) | sum(.SD$LowestPrice, na.rm=TRUE) == 0,
-                         min(.SD[Volume != 0][LastPrice !=0]$LastPrice, na.rm = TRUE),
-                         min(.SD[Volume != 0][LowestPrice !=0]$LowestPrice, na.rm = TRUE)),
+                         min(.SD[Volume != 0][LastPrice !=0]$LastPrice, na.rm=TRUE),
+                         min(.SD[Volume != 0][LowestPrice !=0]$LowestPrice, na.rm=TRUE)),
       ClosePrice = ifelse(all(is.na(.SD$ClosePrice)) | sum(.SD$ClosePrice, na.rm=TRUE) == 0,
-                          .SD[.N,LastPrice],
-                          .SD[.N,ClosePrice]),
+                          .SD[Volume != 0][.N,LastPrice],
+                          .SD[Volume != 0][.N,ClosePrice]),
       #-----------------------------------------------------------------------------
       Volume = sum(.SD$DeltaVolume, na.rm=TRUE),
       Turnover = sum(.SD$DeltaTurnover, na.rm=TRUE),
       #-----------------------------------------------------------------------------
       OpenOpenInterest = .SD[1,OpenInterest],
-      HighOpenInterest = max(.SD$OpenInterest, na.rm = TRUE),
-      LowOpenInterest = min(.SD$OpenInterest, na.rm = TRUE),
+      HighOpenInterest = max(.SD$OpenInterest, na.rm=TRUE),
+      LowOpenInterest = min(.SD$OpenInterest, na.rm=TRUE),
       CloseOpenInterest = .SD[.N,OpenInterest],
       #-----------------------------------------------------------------------------
       UpperLimitPrice = unique(na.omit(.SD$UpperLimitPrice)),
       LowerLimitPrice = unique(na.omit(.SD$LowerLimitPrice)),
       SettlementPrice = .SD[.N, SettlementPrice]
-    )], by=.(TradingDay, InstrumentID)] %>%
+    )], by = .(TradingDay, InstrumentID)] %>%
     .[Volume != 0 & Turnover != 0] %>%
     .[, Sector := daySector]
-
-  #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  setcolorder(temp.res, c('TradingDay', 'Sector',
-                          colnames(temp.res)[2:(ncol(temp.res)-1)]))
-  return(temp.res)
-  #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  #-----------------------------------------------------------------------------
+  #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  setcolorder(tempRes, c('TradingDay', 'Sector',
+                          colnames(tempRes)[2:(ncol(tempRes)-1)]))
+  return(tempRes)
+  #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 }
 ##############################################################################
