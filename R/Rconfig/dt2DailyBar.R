@@ -35,7 +35,9 @@ dt2DailyBar <- function(x, daySector){
       LowPrice  = ifelse(all(is.na(.SD$LowestPrice)) | sum(.SD$LowestPrice, na.rm=TRUE) == 0,
                          min(.SD[Volume != 0][LastPrice !=0]$LastPrice, na.rm=TRUE),
                          min(.SD[Volume != 0][LowestPrice !=0]$LowestPrice, na.rm=TRUE)),
-      ClosePrice = ifelse(all(is.na(.SD$ClosePrice)) | sum(.SD$ClosePrice, na.rm=TRUE) == 0,
+      ## CZCE 郑商所的 ClosePrice 是有问题的，需要用到 LastPrice
+      ClosePrice = ifelse(all(is.na(.SD$ClosePrice)) | sum(.SD$ClosePrice, na.rm=TRUE) == 0 |
+                            .SD[,nchar(unique(gsub('[a-zA-Z]','',InstrumentID))) == 3],
                           .SD[Volume != 0][.N,LastPrice],
                           .SD[Volume != 0][.N,ClosePrice]),
       #-----------------------------------------------------------------------------
