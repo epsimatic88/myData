@@ -11,12 +11,6 @@ suppressMessages({
   source('./R/Rconfig/myInit.R')
 })
 
-sink(paste0("./log/dailyDataLog_", format(Sys.Date(),"%Y%m%d"), ".txt"), append = FALSE)
-cat("## ================================================================= ##\n")
-cat("## 亲，以下是今天的数据库情况汇报。请过目！\n")
-cat("##                                                                     \n")
-cat(paste0("## 当前时间：", Sys.time()), "\n")
-cat("## ================================================================= ##\n\n")
 
 ## =============================================================================
 ## ChinaFuturesCalendar
@@ -33,6 +27,14 @@ if (as.numeric(format(Sys.time(),'%H')) <= 18){
   currTradingDay <- ChinaFuturesCalendar[nights == format(Sys.Date(),'%Y-%m-%d')]
   lastTradingDay <- ChinaFuturesCalendar[days == format(Sys.Date(),'%Y-%m-%d')]
 }
+
+
+sink(paste0("./log/dailyDataLog_", currTradingDay[1,gsub('-','',days)], ".txt"), append = FALSE)
+cat("## ================================================================= ##\n")
+cat("## 亲，以下是今天的数据库情况汇报。请过目！\n")
+cat("##                                                                     \n")
+cat(paste0("## 当前时间：", Sys.time()), "\n")
+cat("## ================================================================= ##\n\n")
 
 cat("## ================================================================= ##\n")
 cat(paste0("## 当前交易日期：", currTradingDay[1,days]), "\n")
