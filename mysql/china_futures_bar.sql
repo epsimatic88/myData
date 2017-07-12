@@ -13,11 +13,11 @@
 ################################################################################～～～～～～～～～～～～
 CREATE TABLE  china_futures_bar.daily(
     TradingDay       DATE             NOT NULL,            ## 交易日期
-    Sector           VARCHAR(100)     NOT NULL,            ## 日期属性: 
+    Sector           CHAR(20)         NOT NULL,            ## 日期属性: 
     #                                                      ## 1. 只含日盘: Sector = 'day'
     #                                                      ## 2. 只含夜盘: Sector = 'nights'
     #                                                      ## 3. 全天，包含日盘、夜盘: Sector = 'allday'
-    InstrumentID     VARCHAR(100)     NOT NULL,            ## 合约名称
+    InstrumentID     CHAR(20)         NOT NULL,            ## 合约名称
     #------------------------------------------------------
     OpenPrice        DECIMAL(15,5)          NULL,          ## 开盘价
     HighPrice        DECIMAL(15,5)          NULL,          ## 最高价
@@ -177,7 +177,7 @@ CREATE TABLE  china_futures_bar.minute(
     #                                                      ## 为了方便 order：
     #                                                      ## 1. 负值表示夜盘的分钟
     #                                                      ## 2. 正值表示日盘的分钟
-    InstrumentID     VARCHAR(100)   NOT NULL,              ## 合约名称
+    InstrumentID     CHAR(20)   NOT NULL,                  ## 合约名称
     #------------------------------------------------------
     OpenPrice        DECIMAL(15,5)          NULL,          ## 开盘价
     HighPrice        DECIMAL(15,5)          NULL,          ## 最高价
@@ -334,8 +334,8 @@ CREATE TABLE dev.FromDC_breakTime(
     BreakBeginTime    TIME  NOT     NULL,                  ## 数据中断开始的时间
     BreakEndTime      TIME  NOT     NULL,                  ## 数据中断结束的时间
     #-----------------------------------------------------
-    DataSource   varchar(100)  NOT      NULL,              ## 原始数据文件的来源，为主要目录
-    DataFile     varchar(100)  NOT      NULL,              ## 原始数据的文件，为 csv 文件/路径
+    DataSource   CHAR(20)  NOT      NULL,                  ## 原始数据文件的来源，为主要目录
+    DataFile     CHAR(20)  NOT      NULL,                  ## 原始数据的文件，为 csv 文件/路径
     #-----------------------------------------------------
     PRIMARY KEY (TradingDay, BreakBeginTime, BreakEndTime,
                  DataSource, DataFile)                     ## 主键唯一，重复不可输入
@@ -347,7 +347,7 @@ CREATE TABLE dev.FromDC_breakTime(
 
 CREATE TABLE dev.FromDC_log(
     TradingDay   DATE           NOT      NULL,             ## 交易日期
-    Sector       VARCHAR(100)   NOT      NULL,             ## 输入的数据类型：
+    Sector       CHAR(20)   NOT      NULL,                 ## 输入的数据类型：
     #                                                      ## 1. 'daily':主要处理日数据
     #                                                      ## 2. 'minute':分钟级别的数据
     #-----------------------------------------------------
@@ -376,8 +376,8 @@ CREATE TABLE dev.CiticPublic_breakTime(
     BreakBeginTime  TIME   NOT      NULL,                  ## 数据中断开始的时间
     BreakEndTime    TIME   NOT      NULL,                  ## 数据中断结束的时间
     #-----------------------------------------------------
-    DataSource   varchar(100)  NOT      NULL,              ## 原始数据文件的来源，为主要目录
-    DataFile     varchar(100)  NOT      NULL,              ## 原始数据的文件，为 csv 文件/路径
+    DataSource   VARCHAR(100)  NOT      NULL,              ## 原始数据文件的来源，为主要目录
+    DataFile     VARCHAR(100)  NOT      NULL,              ## 原始数据的文件，为 csv 文件/路径
     #-----------------------------------------------------
     PRIMARY KEY (TradingDay, BreakBeginTime, BreakEndTime,  
                  DataSource, DataFile)                     ## 主键唯一，重复不可输入
@@ -411,14 +411,14 @@ CREATE TABLE dev.CiticPublic_log(
 ################################################################################
 CREATE TABLE china_futures_bar.oiRank(
   TradingDay     DATE           NOT NULL,                  ## 交易日期
-  InstrumentID   VARCHAR(100)   NOT NULL,                  ## 合约名称
+  InstrumentID   CHAR(20)   NOT NULL,                      ## 合约名称
   Rank           int            NOT NULL,                  ## 持仓排名                  
-  BrokerID       VARCHAR(100)   NOT NULL,                  ## 期货公司名称
-  ClassID        VARCHAR(100)   NOT NULL,                  ## 种类：Turnover,
+  BrokerID       CHAR(50)   NOT NULL,                      ## 期货公司名称
+  ClassID        CHAR(20)   NOT NULL,                      ## 种类：Turnover,
                                                            ## longPos
                                                            ## shortPos
   Amount         BIGINT,                                   ## 数量
-  DiffAmout      BIGINT,                                   ## 数量增减
+  DiffAmount      BIGINT,                                   ## 数量增减
   #-----------------------------------------------------------------------------
   PRIMARY KEY (TradingDay, InstrumentID, Rank, BrokerID, ClassID)
 );
