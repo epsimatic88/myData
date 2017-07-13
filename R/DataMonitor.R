@@ -11,7 +11,6 @@ suppressMessages({
   source('./R/Rconfig/myInit.R')
 })
 
-
 ## =============================================================================
 ## ChinaFuturesCalendar
 ## =============================================================================
@@ -22,11 +21,10 @@ ChinaFuturesCalendar <- dbGetQuery(mysql, "
 
 if (as.numeric(format(Sys.time(),'%H')) <= 18){
   currTradingDay <- ChinaFuturesCalendar[days == format(Sys.Date(),'%Y-%m-%d')]
-  lastTradingDay <- ChinaFuturesCalendar[nights == format(Sys.Date(),'%Y-%m-%d')]
 }else{
   currTradingDay <- ChinaFuturesCalendar[nights == format(Sys.Date(),'%Y-%m-%d')]
-  lastTradingDay <- ChinaFuturesCalendar[days == format(Sys.Date(),'%Y-%m-%d')]
 }
+lastTradingDay <- ChinaFuturesCalendar[days < currTradingDay[1,days]][.N]
 
 
 sink(paste0("./log/dailyDataLog_", currTradingDay[1,gsub('-','',days)], ".txt"), append = FALSE)
@@ -186,6 +184,24 @@ if (! lastTradingDay[1,days] %in% dtOpenInfo[,TradingDay]) {
 }
 
 
+dtOpenInfo2 <- dbGetQuery(mysql,"
+            SELECT * 
+            FROM fl_open_t_2
+") %>% as.data.table()
+cat("## ================================================================= ##\n")
+cat("## lhg_trade.fl_open_t_2")
+knitr::kable(dtOpenInfo2)
+cat('\n## \n')
+
+if (! lastTradingDay[1,days] %in% dtOpenInfo2[,TradingDay]) {
+  cat('## 策略的信号数据未入库！！！\n')
+  cat('## 请检查程序。\n')
+  cat('## 程序脚本位于：==> Lin HuanGeng 策略信号 \n')
+  cat("## ================================================================= ##\n\n")
+}else{
+  cat('## 策略的信号数据已入库！！！\n')
+  cat("## ================================================================= ##\n\n")
+}
 ## =============================================================================
 ## HiCloud
 ## =============================================================================
