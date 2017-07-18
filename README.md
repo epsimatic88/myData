@@ -143,3 +143,5 @@
     - [X] updateDailyCloseCZCE.R
     
 - [X] DataMonitor.R
+
+福州服务器测试
