@@ -32,6 +32,9 @@ currTradingday = ChinaFuturesCalendar.loc[ChinaFuturesCalendar.days == datetime.
 sender = 'MySQL' + '@hicloud.com'
 # receivers = ['fl@hicloud-investment.com','lhg@hicloud-investment.com']  # 接收邮件
 # receivers = ['fl@hicloud-investment.com','lhg@hicloud-investment.com']
+# receiversMain = ['fl@hicloud-investment.com','lhg@hicloud-investment.com']
+# receiversOthers = ['zgctrading@qq.com']
+
 receiversMain = ['fl@hicloud-investment.com','lhg@hicloud-investment.com']
 receiversOthers = ['zgctrading@qq.com']
 ## -----------------------------------------------------------------------------
@@ -62,7 +65,9 @@ message['Subject'] = Header(subject, 'utf-8')
 try:
     smtpObj = smtplib.SMTP('localhost')
     smtpObj.sendmail(sender, receiversMain, message.as_string())
-    print "邮件发送成功"
+    print "#"*80
+    print "邮件发送成功：==> " + ';'.join(receiversMain)
+    print "#"*80
 except smtplib.SMTPException:
     print "Error: 无法发送邮件"
 
@@ -86,7 +91,9 @@ message['Subject'] = Header(subject, 'utf-8')
 
 try:
     smtpObj = smtplib.SMTP('localhost')
-    smtpObj.sendmail(sender, receiversMain, message.as_string())
-    print "邮件发送成功"
+    smtpObj.sendmail(sender, receiversOthers, message.as_string())
+    print "#"*80
+    print "邮件发送成功：==> " + ';'.join(receiversOthers)
+    print "#"*80
 except smtplib.SMTPException:
     print "Error: 无法发送邮件"

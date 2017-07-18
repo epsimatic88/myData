@@ -19,7 +19,7 @@ ChinaFuturesCalendar <- dbGetQuery(mysql, "
             SELECT * FROM ChinaFuturesCalendar"
             ) %>% as.data.table()
 
-if (as.numeric(format(Sys.time(),'%H')) <= 18){
+if (as.numeric(format(Sys.time(),'%H')) < 18){
   currTradingDay <- ChinaFuturesCalendar[days == format(Sys.Date(),'%Y-%m-%d')]
 }else{
   currTradingDay <- ChinaFuturesCalendar[nights == format(Sys.Date(),'%Y-%m-%d')]
@@ -27,7 +27,7 @@ if (as.numeric(format(Sys.time(),'%H')) <= 18){
 lastTradingDay <- ChinaFuturesCalendar[days < currTradingDay[1,days]][.N]
 
 
-sink(paste0("./log/dailyDataLog_", currTradingDay[1,gsub('-','',days)], ".txt"), append = FALSE)
+sink(paste0("./log/dailyDataLog_", lastTradingDay[1,gsub('-','',days)], ".txt"), append = FALSE)
 cat("## ================================================================= ##\n")
 cat("## 亲，以下是今天的数据库情况汇报。请过目！\n")
 cat("##                                                                     \n")
@@ -35,8 +35,8 @@ cat(paste0("## 当前时间：", Sys.time()), "\n")
 cat("## ================================================================= ##\n\n")
 
 cat("## ================================================================= ##\n")
-cat(paste0("## 当前交易日期：", currTradingDay[1,days]), "\n")
-print(currTradingDay)
+cat(paste0("## 当前交易日期：", lastTradingDay[1,days]), "\n")
+print(lastTradingDay)
 cat("## ================================================================= ##\n\n")
 
 
@@ -56,7 +56,7 @@ cat('## \n')
 ## -----------------------------------------------------------------------------
 ## 1. 如果当前交易日不在数据
 ## 2. 或者当前数据缺失
-if (! currTradingDay[1,days] %in% dtTick[,TradingDay] |
+if (! lastTradingDay[1,days] %in% dtTick[,TradingDay] |
   dtTick[.N, recordingNo < .90 * mean(recordingNo)]) {
   cat('## 当前交易日的数据未入库！！！\n')
   cat('## 请检查程序。\n')
@@ -92,9 +92,9 @@ cat('## \n')
 ## -----------------------------------------------------------------------------
 ## 1. 如果当前交易日不在数据
 ## 2. 或者当前数据缺失
-if (! currTradingDay[1,days] %in% dtDaily[,TradingDay] |
+if (! lastTradingDay[1,days] %in% dtDaily[,TradingDay] |
   dtDaily[.N, recordingNo < .90 * mean(recordingNo)] |
-  ! currTradingDay[1,days] %in% dtMinute[,TradingDay] |
+  ! lastTradingDay[1,days] %in% dtMinute[,TradingDay] |
   dtMinute[.N, recordingNo < .90 * mean(recordingNo)]) {
   cat('## 当前交易日的数据未入库！！！\n')
   cat('## 请检查程序。\n')
@@ -122,7 +122,7 @@ cat('## \n')
 ## -----------------------------------------------------------------------------
 ## 1. 如果当前交易日不在数据
 ## 2. 或者当前数据缺失
-if (! currTradingDay[1,days] %in% dtOiRank[,TradingDay] |
+if (! lastTradingDay[1,days] %in% dtOiRank[,TradingDay] |
   dtOiRank[.N, recordingNo < .92 * mean(recordingNo)]) {
   cat('## 当前交易日的数据未入库！！！\n')
   cat('## 请检查程序。\n')
@@ -143,11 +143,11 @@ dtVolumeMultiple <- dbGetQuery(mysql, paste("
             FROM VolumeMultiple
             WHERE TradingDay >= ", format(Sys.Date()-30,"%Y%m%d"),
             "GROUP By  TradingDay")
-            ) %>% as.data.table() 
+            ) %>% as.data.table()
 cat("## ================================================================= ##\n")
 cat("## china_futures_info.VolumeMultiple \n")
 cat('## \n')
-if (! currTradingDay[1,days] %in% dtVolumeMultiple[,TradingDay] |
+if (! lastTradingDay[1,days] %in% dtVolumeMultiple[,TradingDay] |
   dtVolumeMultiple[.N, recordingNo < .90 * mean(recordingNo)]) {
   cat('## 当前交易日的数据未入库！！！\n')
   cat('## 请检查程序。\n')
@@ -165,7 +165,7 @@ if (! currTradingDay[1,days] %in% dtVolumeMultiple[,TradingDay] |
 ## =============================================================================
 mysql <- mysqlFetch('lhg_trade')
 dtOpenInfo <- dbGetQuery(mysql,"
-            SELECT * 
+            SELECT *
             FROM fl_open_t
 ") %>% as.data.table()
 cat("## ================================================================= ##\n")
@@ -185,7 +185,7 @@ if (! lastTradingDay[1,days] %in% dtOpenInfo[,TradingDay]) {
 
 
 dtOpenInfo2 <- dbGetQuery(mysql,"
-            SELECT * 
+            SELECT *
             FROM fl_open_t_2
 ") %>% as.data.table()
 cat("## ================================================================= ##\n")

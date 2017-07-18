@@ -87,7 +87,7 @@ cols <- colnames(dt)[6:ncol(dt)]
 dt[, (cols) := lapply(.SD, function(x){
   tempRes <- ifelse(x >= 1.797693e+300, NA, x)
 }), .SDcols = cols]
-
+dt <- dt[!is.na(LastPrice)]
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 info <- data.table(status = paste("(1) [读入数据]: 原始数据                                :==> Rows:", nrow(dt),
                                   "/ Columns:", ncol(dt), sep=" ")

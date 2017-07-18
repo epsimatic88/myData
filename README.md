@@ -1,8 +1,7 @@
 # myData
 
 > Data Manipulation
->
-> 处理各种数据、管理数据库的程序脚本
+> 用于处理数据库的所有脚本程序
 
 
 ```bash
@@ -48,12 +47,29 @@
 │           └── SHFE
 ├── LICENSE
 ├── log
-│   └── dailyDataLog_20170713.txt
-├── missingData.csv
+│   ├── dailyDataLog_20170717.txt
+│   └── dailyDataLog_20170718.txt
 ├── mysql
 │   ├── china_futures_bar.sql
+│   ├── china_futures_HFT.sql
 │   └── china_futures_info.sql
 ├── python
+│   ├── auto it
+│   │   ├── debang.py
+│   │   ├── dongbei.py
+│   │   ├── expt.py
+│   │   ├── haitong.py
+│   │   ├── init.py
+│   │   ├── interface.py
+│   │   ├── logging.py
+│   │   ├── model.py
+│   │   ├── monitor.py
+│   │   ├── tdx.py
+│   │   ├── tools.py
+│   │   ├── wrapper.py
+│   │   ├── yinhe.py
+│   │   └── zhaoshang.py
+│   ├── auto it.zip
 │   └── sendEmail.py
 ├── R
 │   ├── china_futures_bar
@@ -68,6 +84,13 @@
 │   │   │   │   ├── ctpmdprod1.20170504023201.csv
 │   │   │   │   ├── ctpmdprod1.20170511023201.csv
 │   │   │   │   └── ctpmdprod1.20170511151701.csv
+│   │   │   └── readme.md
+│   │   ├── CTPMD
+│   │   │   ├── ctpMD2mysql_00_main.R
+│   │   │   ├── ctpMD2mysql_01_read_data.R
+│   │   │   ├── ctpMD2mysql_02_manipulate_data.R
+│   │   │   ├── ctpMD2mysql_03_mysql_data.R
+│   │   │   ├── ctpMD2mysql_04_NA_data.R
 │   │   │   └── readme.md
 │   │   ├── FromDC
 │   │   └── oiRank
@@ -107,6 +130,7 @@
 │   ├── Rconfig
 │   │   ├── dt2DailyBar.R
 │   │   ├── dt2MinuteBar.R
+│   │   ├── MainContract_00_main.R
 │   │   ├── myBreakTime.R
 │   │   ├── myDay.R
 │   │   ├── myFread.R
@@ -114,6 +138,8 @@
 │   └── vnpyData
 │       └── vnpyData2mysql_00_main.R
 └── README.md
+
+29 directories, 103 files
 ```
 
 
@@ -143,7 +169,3 @@
     - [X] updateDailyCloseCZCE.R
     
 - [X] DataMonitor.R
-
-福州服务器测试
-
-�������Ĳ��Բ���

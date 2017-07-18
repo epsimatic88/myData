@@ -248,6 +248,30 @@ knitr::include_graphics('/home/fl/myData/R/DataCompare/jydb/2017-03-31.png')
 
 
 
+### 看看缺的是不是主力
+
+```{r}
+dtMissing <- dt[is.na(errAmount)]
+dtMissing[, main := NA]
+dtMissing[, product := gsub('[0-9]','',InstrumentID)]
+
+mysql <- mysqlFetch('china_futures_bar')
+dtMain <- dbGetQuery(mysql, "select * from main_contract_daily where tradingday between 20160914 and 20170626") %>% as.data.table()
+dtMain[, Main_contract := toupper(Main_contract)]
+dtMain[, Product := toupper(Product)]
+
+for (i in 1:nrow(dtMissing)) {
+  print(i)
+  temp <- dtMain[TradingDay == dtMissing[i,TradingDay]][Product == dtMissing[i,product],Main_contract]
+  if(length(temp) != 0){
+    dtMissing$main[i] <- temp
+  }
+}
+
+dtMissing[, isMain := ifelse(InstrumentID == main,
+                             1,0)]
+dtMissing[isMain == 1]
+```
 
 
 

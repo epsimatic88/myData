@@ -115,6 +115,55 @@ myFreadBar <- function(x){
   return(dt)
 }
 
+## =============================================================================
+## FUN: myFreadBarCTP
+## 用于制作 bar
+myFreadBarCTP <- function(x){
+  ## -- 如果使用　fread 可以正常读取数据文件
+  if(class(try(fread(x, showProgress = FALSE, fill = TRUE, nrows = 100),
+               silent = TRUE))[1] != "try-error"){
+    dt <- fread(x, showProgress = TRUE, fill = TRUE,
+                select = c('TimeStamp','TradingDay','UpdateTime','UpdateMillisec'
+                           ,'InstrumentID','LastPrice'
+                           ,"OpenPrice", "HighestPrice", "LowestPrice","ClosePrice"
+                           ,'Volume','Turnover','OpenInterest'
+                           ,'SettlementPrice','UpperLimitPrice','LowerLimitPrice'
+                           ,'BidPrice1','BidVolume1','BidPrice2','BidVolume2'
+                           ,'BidPrice3','BidVolume3','BidPrice4','BidVolume4'
+                           ,'BidPrice5','BidVolume5'
+                           ,'AskPrice1','AskVolume1','AskPrice2','AskVolume2'
+                           ,'AskPrice3','AskVolume3','AskPrice4','AskVolume4'
+                           ,'AskPrice5','AskVolume5'
+                ),
+                colClasses = list(character = c("TradingDay","InstrumentID","UpdateTime"),
+                                  numeric   = c("Volume","Turnover") )) %>%
+      .[grep("^[0-9]{8}:[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]{6}$", TimeStamp)]
+  }else{
+  ## -- 如果使用　fread 读取失败，则使用　read_csv
+    dt <- read_csv(x,
+                   col_types = list(TradingDay   = col_character(),
+                                    InstrumentID = col_character(),
+                                    UpdateTime   = col_character(),
+                                    Volume       = col_number(),
+                                    Turnover     = col_number())
+    ) %>% as.data.table() %>%
+      .[grep("^[0-9]{8}:[0-9]{2}:[0-9]{2}:[0-9]{2}:[0-9]{6}$", TimeStamp)] %>%
+      .[,.(TimeStamp, TradingDay, UpdateTime, UpdateMillisec
+           ,InstrumentID,LastPrice
+           ,OpenPrice, HighestPrice, LowestPrice,ClosePrice
+           ,Volume,Turnover,OpenInterest
+           ,SettlementPrice,UpperLimitPrice,LowerLimitPrice
+           ,BidPrice1,BidVolume1,BidPrice2,BidVolume2
+           ,BidPrice3,BidVolume3,BidPrice4,BidVolume4
+           ,BidPrice5,BidVolume5
+           ,AskPrice1,AskVolume1,AskPrice2,AskVolume2
+           ,AskPrice3,AskVolume3,AskPrice4,AskVolume4
+           ,AskPrice5,AskVolume5)]
+  }
+  ##----------------------------------------------------------------------------
+  return(dt)
+}
+
 
 ## =============================================================================
 ## FUN: myFreadBar
