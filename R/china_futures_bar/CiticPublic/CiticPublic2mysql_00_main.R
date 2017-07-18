@@ -148,7 +148,7 @@ for(k in 1:nrow(futuresCalendar)){
 
   print(paste0("#-----------------------------------------------------------------#"))
   print(paste0("# Update MainContract Infomation  --------------------------------#"))
-  source('/home/fl/William/Codes/MainContract/MainContract_00_main.R')
+  source('/home/fl/myData/R/Rconfig/MainContract_00_main.R')
   print(paste0("#-----------------------------------------------------------------#"))
 
   print(paste0("# <", k, "> <--: at ", Sys.time()))
