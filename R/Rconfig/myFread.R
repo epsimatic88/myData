@@ -211,3 +211,50 @@ myFreadFromDC <- function(x){
   ##----------------------------------------------------------------------------
   return(dt)
 }
+
+
+## =============================================================================
+## FUN: myFreadvnpy
+myFreadvnpy <- function(x){
+  ## -- 如果使用　fread 可以正常读取数据文件
+  if(class(try(fread(x, showProgress = FALSE, fill = TRUE, nrows = 100),
+               silent = TRUE))[1] != "try-error"){
+    dt <- fread(x, showProgress = TRUE, fill = TRUE,
+                select = c('timeStamp','date','time'
+                           ,'symbol','lastPrice','volume','turnover','openInterest'
+                           ,'upperLimit','lowerLimit'
+                           ,'bidPrice1','bidVolume1','bidPrice2','bidVolume2'
+                           ,'bidPrice3','bidVolume3','bidPrice4','bidVolume4'
+                           ,'bidPrice5','bidVolume5'
+                           ,'askPrice1','askVolume1','askPrice2','askVolume2'
+                           ,'askPrice3','askVolume3','askPrice4','askVolume4'
+                           ,'askPrice5','askVolume5'
+                ),
+                colClasses = list(character = c("date","symbol","time"),
+                                  numeric   = c("volume","turnover") )) %>%
+      .[grep("^[0-9]{8} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}$", timeStamp)]
+      ## 考虑到部分文件可能使用的　Timestamp 是乱码
+  }else{
+  ## -- 如果使用　fread 读取失败，则使用　read_csv
+    dt <- read_csv(x,
+                   col_types = list(TradingDay   = col_character(),
+                                    InstrumentID = col_character(),
+                                    UpdateTime   = col_character(),
+                                    Volume       = col_number(),
+                                    Turnover     = col_number())
+                   ) %>% as.data.table() %>%
+      .[grep("^[0-9]{8} [0-9]{2}:[0-9]{2}:[0-9]{2}.[0-9]{6}$", timeStamp)] %>%
+      .[,.(timeStamp, date, time
+           ,symbol,lastPrice
+           ,volume,turnover,openInterest
+           ,upperLimit,lowerLimit
+           ,bidPrice1,bidVolume1,bidPrice2,bidVolume2
+           ,bidPrice3,bidVolume3,bidPrice4,bidVolume4
+           ,bidPrice5,bidVolume5
+           ,askPrice1,askVolume1,askPrice2,askVolume2
+           ,askPrice3,askVolume3,askPrice4,askVolume4
+           ,askPrice5,askVolume5)]
+  }
+  ##----------------------------------------------------------------------------
+  return(dt)
+}
