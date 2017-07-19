@@ -146,7 +146,9 @@
 - china_futures_bar
     
     - [X] CiticPublic
+    - [X] CTPMD
     - [ ] FromDC
+    - [ ] colo
     - [ ] oiRank
 
 - china_futures_info
@@ -158,6 +160,8 @@
 - ChinaFuturesCalendar
 
     - [X] ChinaFuturesCalendar_2017.R
+
+- vnpyData
 
 - DataCompare
 
