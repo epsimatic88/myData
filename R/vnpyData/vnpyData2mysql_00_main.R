@@ -33,7 +33,7 @@ includeHistory <- FALSE
 
 
 ## =============================================================================
-dataPath <- "/shared/public/fl/Tick"
+dataPath <- "/data/ChinaFuturesTickData/FromAli/vn.data/TickData"
 allDataFiles <- list.files(dataPath, pattern = '\\.csv')
 
 ## 起始
@@ -48,33 +48,54 @@ endDay <- sapply(1:length(allDataFiles), function(i){
 }) %>% max()
 
 ## 需要更新到的最新日期的倒数
-lastDay <- ifelse(as.numeric(format(Sys.time(), "%H")) %between% c(15, 20), 0, 1)
+tempHour <- as.numeric(format(Sys.time(), "%H"))
+lastDay <- ifelse(tempHour %between% c(2,7) | tempHour %between% c(15,19), 0, 1)
 ## =============================================================================
 
 
 ################################################################################
 ## STEP 1: 获取对应的
 ################################################################################
+# ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar_2011_2017.csv",
+#                               colClasses = list(character = c("nights","days"))) %>%
+#   .[(which(days >=  max(gsub("-", "", as.character(Sys.Date() - 250)), startDay) )[1]) :  ## 半年以内的数据
+#     (which(days <=  gsub("-", "", as.character(Sys.Date() - lastDay)) ) %>% .[length(.)]) ] %>%
+#   .[days >= '20170101']
+
 ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar_2011_2017.csv",
-                              colClasses = list(character = c("nights","days"))) %>%
-  .[(which(days >=  max(gsub("-", "", as.character(Sys.Date() - 250)), startDay) )[1]) :  ## 半年以内的数据
-    (which(days <=  gsub("-", "", as.character(Sys.Date() - lastDay)) ) %>% .[length(.)]) ] %>%
-    .[days >= '20170101']
+                              colClasses = list(character = c("nights","days")))
 
 ## =============================================================================
 ## 判断当天是不是交易的日期
 ## 如果不是，则停止程序
-if(!format(Sys.Date(), "%Y%m%d") %in% ChinaFuturesCalendar[,days]){
-  stop("亲：不好意思，今天不是赚钱的日子哦！！！")
+if (tempHour %between% c(2,7) & !includeHistory) {
+  ## =============================================================================
+  ## 以下都不需要修改
+  ## =============================================================================
+  if (! format(Sys.Date()-0, '%Y%m%d') %in% ChinaFuturesCalendar[,days] & 
+      ! format(Sys.Date()-1, '%Y%m%d') %in% ChinaFuturesCalendar[,nights]) {
+    stop('圣上，今天赌场关门哦！！！')
+  }
+
+}
+if (tempHour %between% c(15,19) & !includeHistory) {
+  if (! format(Sys.Date()-0, '%Y%m%d') %in% ChinaFuturesCalendar[,days]) {
+    stop('圣上，今天赌场关门哦！！！')
+  }
 }
 ## =============================================================================
 
 ## =============================================================================
 ## 判断是不是需要处理历史的数据，还是只需要处理最新的数据
-if(includeHistory){
-  futuresCalendar <- ChinaFuturesCalendar[days %between% c(startDay, endDay)]
-}else{##-- NOT INCLUDE HIOSTORY DATA
-  futuresCalendar <- ChinaFuturesCalendar[.N-10]
+if (includeHistory) {
+  futuresCalendar <- ChinaFuturesCalendar[days %between% c(startDay, endDay)] %>% .[-1]
+} else {##-- NOT INCLUDE HIOSTORY DATA
+  if (tempHour %between% c(2,7)) {
+    futuresCalendar <- ChinaFuturesCalendar[nights <= as.character(format(Sys.Date(),'%Y%m%d'))][.N]
+  }
+  if (tempHour %between% c(15,19)) {
+    futuresCalendar <- ChinaFuturesCalendar[days == as.character(format(Sys.Date(),'%Y%m%d'))]
+  }
 }
 ## =============================================================================
 
@@ -84,7 +105,8 @@ if(includeHistory){
 # nrow(futures_calendar)
 for(k in 1:nrow(futuresCalendar)){
   print(paste0("#-----------------------------------------------------------------#"))
-
+  print(paste0("#---------- TradingDay :==> ", futuresCalendar[k, days], 
+        " -----------------------------#"))
   ## ===========================================================================
   ## 用于记录日志：Log
   ## 1.程序开始执行的时间
@@ -127,15 +149,24 @@ for(k in 1:nrow(futuresCalendar)){
     ## 1. 读取数据
     ## Input: data.csv
     ## Output: dt
-    source('/home/fl/myData/R/vnpyData/vnpyData2mysql_01_read_data.R')
+    source('./R/vnpyData/vnpyData2mysql_01_read_data.R')
     ## -------------------------------------------------------------------------
 
     ############################################################################
     if(nrow(dt) != 0){
-      source('/home/fl/myData/R/vnpyData/vnpyData2mysql_02_manipulate_data.R')
-      source('/home/fl/myData/R/vnpyData/vnpyData2mysql_03_mysql_data.R')
+      source('./R/vnpyData/vnpyData2mysql_02_manipulate_data.R')
+      source('./R/vnpyData/vnpyData2mysql_03_mysql_data.R')
+      ## -----------------------------------------------------------------------
+      if (tempHour %between% c(15,19) | includeHistory) {
+        try(
+          source('./R/vnpyData/vnpyData2mysql_05_info.R')
+          )
+      }
+      ## -----------------------------------------------------------------------
     }else{##---------- NA Data
-      source('/home/fl/myData/R/vnpyData/vnpyData2mysql_04_NA_data.R')
+      if (tempHour %between% c(15,19) | includeHistory) {
+        source('./R/vnpyData/vnpyData2mysql_04_NA_data.R')
+      }
     }
     ############################################################################
   }
