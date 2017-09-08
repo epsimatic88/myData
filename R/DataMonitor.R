@@ -19,7 +19,7 @@ ChinaFuturesCalendar <- dbGetQuery(mysql, "
             SELECT * FROM ChinaFuturesCalendar"
             ) %>% as.data.table()
 
-if (as.numeric(format(Sys.time(),'%H')) < 18){
+if (as.numeric(format(Sys.time(),'%H')) < 17){
   currTradingDay <- ChinaFuturesCalendar[days == format(Sys.Date(),'%Y-%m-%d')]
 }else{
   currTradingDay <- ChinaFuturesCalendar[nights == format(Sys.Date(),'%Y-%m-%d')]
@@ -29,7 +29,7 @@ lastTradingDay <- ChinaFuturesCalendar[days < currTradingDay[1,days]][.N]
 
 sink(paste0("./log/dailyDataLog_", lastTradingDay[1,gsub('-','',days)], ".txt"), append = FALSE)
 cat("## ================================================================= ##\n")
-cat("## 亲，以下是今天的数据库情况汇报。请过目！\n")
+cat("## 启禀圣上，以下是今天的数据库情况汇报。请过目！\n")
 cat("##                                                                     \n")
 cat(paste0("## 当前时间：", Sys.time()), "\n")
 cat("## ================================================================= ##\n\n")
@@ -46,12 +46,12 @@ cat("## ================================================================= ##\n\n
 mysql <- mysqlFetch('china_futures_HFT')
 dtTick <- dbGetQuery(mysql,paste("
             SELECT TradingDay, count(*) as recordingNo
-            FROM CiticPublic
+            FROM vnpy_XiFu
             WHERE TradingDay >= ", format(Sys.Date()-5,"%Y%m%d"),
             "GROUP BY TradingDay")
             ) %>% as.data.table()
 cat("## ================================================================= ##\n")
-cat("## china_futures_HFT.CiticPublic \n")
+cat("## china_futures_HFT.vnpy_XiFu\n")
 cat('## \n')
 ## -----------------------------------------------------------------------------
 ## 1. 如果当前交易日不在数据
@@ -60,7 +60,7 @@ if (! lastTradingDay[1,days] %in% dtTick[,TradingDay] |
   dtTick[.N, recordingNo < .90 * mean(recordingNo)]) {
   cat('## 当前交易日的数据未入库！！！\n')
   cat('## 请检查程序。\n')
-  cat('## 程序脚本位于：==> /home/fl/myData/R/china_futures_bar/CiticPublic/ \n')
+  cat('## 程序脚本位于：==> 192.168.1.135:/home/fl/myData/R/vnpyData/ \n')
   cat("## ================================================================= ##\n\n")
 }else{
   cat('## 当前交易日的数据已入库！！！\n')
@@ -98,7 +98,7 @@ if (! lastTradingDay[1,days] %in% dtDaily[,TradingDay] |
   dtMinute[.N, recordingNo < .90 * mean(recordingNo)]) {
   cat('## 当前交易日的数据未入库！！！\n')
   cat('## 请检查程序。\n')
-  cat('## 程序脚本位于：==> /home/fl/myData/R/china_futures_bar/CiticPublic/ \n')
+  cat('## 程序脚本位于：==> 192.168.1.135:/home/fl/myData/R/vnpyData/ \n')
   cat("## ================================================================= ##\n\n")
 }else{
   cat('## 当前交易日的数据已入库！！！\n')
