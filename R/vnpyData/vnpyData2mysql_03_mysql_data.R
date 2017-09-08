@@ -8,6 +8,9 @@ mysql <- mysqlFetch('vnpy')
 mysqlDBname <- paste(dbGetInfo(mysql)$dbname,
                            dataPath,
                            sep = ".")
+
+dbSendQuery(mysql,paste0("DELETE FROM tick
+            WHERE TradingDay = ", logTradingDay))
 dbWriteTable(mysql, "tick",
              dtTick, row.name = FALSE, append = T)
 ## =============================================================================
@@ -16,17 +19,21 @@ dbWriteTable(mysql, "tick",
 ## 写入 Bar 数据
 ## Delete night minute data
 dbSendQuery(mysql,paste0("DELETE FROM minute
-            WHERE TradingDay = ", dtMinute[,unique(TradingDay)])
-            )
+            WHERE TradingDay = ", logTradingDay))
 dbWriteTable(mysql,"minute",
              dtMinute, row.name　=　FALSE, append = T)
 
-## -- DailyBar
-dbWriteTable(mysql, "daily",
-             dt_allday, row.name　=　FALSE, append = T)
-## -- DayBar
-dbWriteTable(mysql, "daily",
-             dt_day, row.name　=　FALSE, append = T)
+dbSendQuery(mysql,paste0("DELETE FROM daily
+            WHERE TradingDay = ", logTradingDay))
+
+if ( tempHour %between% c(15,19) | includeHistory) {
+  ## -- DailyBar
+  dbWriteTable(mysql, "daily",
+               dt_allday, row.name　=　FALSE, append = T)
+  ## -- DayBar
+  dbWriteTable(mysql, "daily",
+               dt_day, row.name　=　FALSE, append = T)
+}
 
 ## -- NightBar
 if(nrow(dt_night) != 0){  #--- 如果非空，则录入 MySQL 数据库
@@ -43,7 +50,7 @@ if(nrow(info) == 1){
   info[1, status := "[错误提示]: 该文件没有数据."]
 }
 #-------------------------------------------------------------------------------
-logInfo <- data.table(TradingDay  = unique(dt$TradingDay)
+logInfo <- data.table(TradingDay  = logTradingDay
                        ,User       = Sys.info() %>% t() %>% data.table() %>% .[,user]
                        ,MysqlDB    = mysqlDBname
                        ,DataSource = dataPath
@@ -64,18 +71,20 @@ logInfo$RscriptSub  <- paste('(1) vnpyData2mysql_01_read_data.R',
 logInfo$Results     <- paste(info$status,collapse = "\n ")
 ## =============================================================================
 
-mysql <- mysqlFetch('vnpy')
-## =============================================================================
-if(exists('break_time_detector')){
-  dbWriteTable(mysql,'breakTime',
-               break_time_detector, row.name=FALSE, append = T)
-}
-print("#---------- WRITTING break_time_detector into MySQL! -------------#")
+if ( tempHour %between% c(15,19) | includeHistory) {
+  mysql <- mysqlFetch('vnpy')
+  ## =============================================================================
+  if(exists('break_time_detector')){
+    dbWriteTable(mysql,'breakTime',
+                 break_time_detector, row.name=FALSE, append = T)
+  }
+  print("#---------- WRITTING break_time_detector into MySQL! -------------#")
 
-dbWriteTable(mysql, "log",
-             logInfo, row.name = FALSE, append = T)
-print("#---------- WRITTING processing log into MySQL! ------------------#")
-## =============================================================================
+  dbWriteTable(mysql, "log",
+               logInfo, row.name = FALSE, append = T)
+  print("#---------- WRITTING processing log into MySQL! ------------------#")
+  ## =============================================================================
+}
 
 ################################################################################
 dbDisconnect(mysql)
