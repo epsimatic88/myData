@@ -12,18 +12,23 @@ if(nchar(futuresCalendar[k,nights]) == 0){
   ##-- 如果没有夜盘
   dtNight <- data.table()
 }else{
-dtNight <- grep(futuresCalendar[k,nights], allDataFiles, value = T) %>%
-  paste(dataPath, ., sep = '/') %>%
-  myFreadvnpy() %>%
-  .[! substr(timeStamp,10,11) %between% c('08','15')] %>%
-  .[substr(time,1,5) %between% c("20:58","24:00") | substr(time,1,5) %between% c("00:00","02:35")]
+  dtNight <- grep(futuresCalendar[k,nights], allDataFiles, value = T) %>%
+    paste(dataPath, ., sep = '/') %>%
+    myFreadvnpy() %>%
+    .[! substr(timeStamp,10,11) %between% c('08','15')] %>%
+    .[substr(time,1,5) %between% c("20:58","24:00") | substr(time,1,5) %between% c("00:00","02:35")]
 }
 
-dtDay <- grep(futuresCalendar[k,days], allDataFiles, value = T) %>%
-  paste(dataPath, ., sep = '/') %>%
-  myFreadvnpy() %>%
-  .[substr(timeStamp,10,11) %between% c('08','15')] %>%
-  .[substr(time,1,5) %between% c("08:58","15:35")]
+if (tempHour %between% c(3,7) & !includeHistory) {
+  dtDay <- data.table()
+} else {
+  dtDay <- grep(futuresCalendar[k,days], allDataFiles, value = T) %>%
+    paste(dataPath, ., sep = '/') %>%
+    myFreadvnpy() %>%
+    .[substr(timeStamp,10,11) %between% c('08','15')] %>%
+    .[substr(time,1,5) %between% c("08:58","15:35")]
+}
+
 ## =============================================================================
 
 
