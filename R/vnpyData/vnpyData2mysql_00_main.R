@@ -91,7 +91,7 @@ if (includeHistory) {
   futuresCalendar <- ChinaFuturesCalendar[days %between% c(startDay, endDay)] %>% .[-1]
 } else {##-- NOT INCLUDE HIOSTORY DATA
   if (tempHour %between% c(2,7)) {
-    futuresCalendar <- ChinaFuturesCalendar[nights <= as.character(format(Sys.Date(),'%Y%m%d'))][.N]
+    futuresCalendar <- ChinaFuturesCalendar[nights < as.character(format(Sys.Date(),'%Y%m%d'))][.N]
   }
   if (tempHour %between% c(15,19)) {
     futuresCalendar <- ChinaFuturesCalendar[days == as.character(format(Sys.Date(),'%Y%m%d'))]
