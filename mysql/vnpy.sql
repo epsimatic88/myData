@@ -11,11 +11,13 @@
 ## CreateDate: 2017-07-18
 ################################################################################
 
+-- CREATE DATABASE `vnpy` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_ci;
+
 ################################################################################～～～～～～～～～～～～～～～
 ## vnpy.tick                                                                  ## vnpy.tick
 ################################################################################～～～～～～～～～～～～～～～
 ## table
-CREATE TABLE vnpy.tick(
+CREATE TABLE vnpy.tick_XiFu_FromAli(
     #----------------------------------------------------
     #--- DateTime Information ---------------------------
     #----------------------------------------------------
@@ -26,7 +28,7 @@ CREATE TABLE vnpy.tick(
     #----------------------------------------------------
     #--- 
     #----------------------------------------------------
-    InstrumentID   CHAR(20)        NOT NULL,
+    InstrumentID   CHAR(30)        NOT NULL,
     #----------------------------------------------------
     #--- PRICE INFORMATION ------------------------------
     #----------------------------------------------------
@@ -84,7 +86,7 @@ CREATE TABLE vnpy.tick(
 ## =================================================================================================
 ## Partition
 ## =================================================================================================
-ALTER TABLE vnpy.tick
+ALTER TABLE vnpy.tick_XiFu_FromAli
     PARTITION BY RANGE( TO_DAYS(TradingDay) )(
     #---------------------------------------------------------------------------
     PARTITION p_2016_12 VALUES LESS THAN (TO_DAYS('2017-01-01')),
@@ -101,21 +103,35 @@ ALTER TABLE vnpy.tick
     PARTITION p_2017_11 VALUES LESS THAN (TO_DAYS('2017-12-01')),
     PARTITION p_2017_12 VALUES LESS THAN (TO_DAYS('2018-01-01')),
     #---------------------------------------------------------------------------
-    PARTITION p_2018_01 VALUES LESS THAN maxvalue
+    #---------------------------------------------------------------------------
+    PARTITION p_2018_01 VALUES LESS THAN (TO_DAYS('2018-02-01')),
+    PARTITION p_2018_02 VALUES LESS THAN (TO_DAYS('2018-03-01')),
+    PARTITION p_2018_03 VALUES LESS THAN (TO_DAYS('2018-04-01')),
+    PARTITION p_2018_04 VALUES LESS THAN (TO_DAYS('2018-05-01')),
+    PARTITION p_2018_05 VALUES LESS THAN (TO_DAYS('2018-06-01')),
+    PARTITION p_2018_06 VALUES LESS THAN (TO_DAYS('2018-07-01')),
+    PARTITION p_2018_07 VALUES LESS THAN (TO_DAYS('2018-08-01')),
+    PARTITION p_2018_08 VALUES LESS THAN (TO_DAYS('2018-09-01')),
+    PARTITION p_2018_09 VALUES LESS THAN (TO_DAYS('2018-10-01')),
+    PARTITION p_2018_10 VALUES LESS THAN (TO_DAYS('2018-11-01')),
+    PARTITION p_2018_11 VALUES LESS THAN (TO_DAYS('2018-12-01')),
+    PARTITION p_2018_12 VALUES LESS THAN (TO_DAYS('2019-01-01')),
+    #---------------------------------------------------------------------------
+    PARTITION p_2019_01 VALUES LESS THAN maxvalue
     );
 
 ## =================================================================================================
 ## index_tick
 ## =================================================================================================
-CREATE INDEX index_tick
-    ON vnpy.tick
-    (TradingDay, InstrumentID, NumericExchTime);      
+CREATE INDEX index_tick_XiFu_FromAli
+    ON vnpy.tick_XiFu_FromAli
+    (TradingDay, InstrumentID, NumericRecvTime, NumericExchTime);      
 
 
 ## =================================================================================================
 ## breakTime
 ## =================================================================================================
-CREATE TABLE vnpy.breakTime(
+CREATE TABLE vnpy.breakTime_XiFu_FromAli(
     TradingDay   DATE      NOT      NULL,                  ## 交易日期
     BreakBeginTime   TIME  NOT      NULL,                  ## 数据中断开始的时间
     BreakEndTime     TIME  NOT      NULL,                  ## 数据中断结束的时间
@@ -130,7 +146,7 @@ CREATE TABLE vnpy.breakTime(
 ## =================================================================================================
 ## log
 ## =================================================================================================
-CREATE TABLE vnpy.log(
+CREATE TABLE vnpy.log_XiFu_FromAli(
     TradingDay   DATE      NOT      NULL,                  ## 交易日期
     #-----------------------------------------------------
     User         TINYTEXT           NULL,                  ## 哪个账户在录入数据
@@ -153,13 +169,13 @@ CREATE TABLE vnpy.log(
 ################################################################################～～～～～～～～～～～～
 ## vnpy.daily                                                                  ## vnpy.daily     
 ################################################################################～～～～～～～～～～～～
-CREATE TABLE  vnpy.daily(
+CREATE TABLE  vnpy.daily_XiFu_FromAli(
     TradingDay       DATE             NOT NULL,            ## 交易日期
     Sector           CHAR(20)         NOT NULL,            ## 日期属性: 
     #                                                      ## 1. 只含日盘: Sector = 'day'
     #                                                      ## 2. 只含夜盘: Sector = 'nights'
     #                                                      ## 3. 全天，包含日盘、夜盘: Sector = 'allday'
-    InstrumentID     CHAR(20)         NOT NULL,            ## 合约名称
+    InstrumentID     CHAR(30)         NOT NULL,            ## 合约名称
     #------------------------------------------------------
     OpenPrice        DECIMAL(15,5)          NULL,          ## 开盘价
     HighPrice        DECIMAL(15,5)          NULL,          ## 最高价
@@ -179,16 +195,16 @@ CREATE TABLE  vnpy.daily(
     SettlementPrice  DECIMAL(15,5)          NULL,          ## 当日交易所公布的结算价
     #-----------------------------------------------------
     PRIMARY KEY (TradingDay, Sector, InstrumentID)         ## 主键唯一，重复不可输入
-    );
+    )DEFAULT CHARSET=utf8;
 
 ##----------- INDEX --------------------------------------------------------- ##
-CREATE INDEX index_daily
-ON vnpy.daily
+CREATE INDEX index_daily_XiFu_FromAli
+ON vnpy.daily_XiFu_FromAli
 (TradingDay, Sector, InstrumentID);  
 ## -------------------------------------------------------------------------- ## 
 
 ##----------- PARTITIONS ---------------------------------------------------- ##
-ALTER TABLE vnpy.daily
+ALTER TABLE vnpy.daily_XiFu_FromAli
     PARTITION BY RANGE( TO_DAYS(TradingDay) )(
     #---------------------------------------------------------------------------
     PARTITION p_2016_12 VALUES LESS THAN (TO_DAYS('2017-01-01')),
@@ -228,7 +244,7 @@ ALTER TABLE vnpy.daily
 ## vnpy.minute                                                                ## vnpy.minute
 ################################################################################～～～～～～～～～～～～～
 
-CREATE TABLE  vnpy.minute(
+CREATE TABLE  vnpy.minute_XiFu_FromAli(
     TradingDay       DATE           NOT NULL,              ## 交易日期
     Minute           TIME           NOT NULL,              ## 分钟，格式为==> "HH:MM:SS"", 与 Wind 数据库类似
     NumericExchTime  DECIMAL(15,5)  NOT NULL,              ## 分钟的数值格式，以 18:00::00 为正负界限，
@@ -236,7 +252,7 @@ CREATE TABLE  vnpy.minute(
     #                                                      ## 为了方便 order：
     #                                                      ## 1. 负值表示夜盘的分钟
     #                                                      ## 2. 正值表示日盘的分钟
-    InstrumentID     CHAR(20)   NOT NULL,                  ## 合约名称
+    InstrumentID     CHAR(30)   NOT NULL,                  ## 合约名称
     #------------------------------------------------------
     OpenPrice        DECIMAL(15,5)          NULL,          ## 开盘价
     HighPrice        DECIMAL(15,5)          NULL,          ## 最高价
@@ -256,16 +272,16 @@ CREATE TABLE  vnpy.minute(
     SettlementPrice  DECIMAL(15,5)          NULL,          ## 当日交易所公布的结算价
     #-----------------------------------------------------
     PRIMARY KEY (TradingDay, Minute, InstrumentID)         ## 主键唯一，重复不可输入
-    );
+    )DEFAULT CHARSET=utf8;
 
 ##----------- INDEX --------------------------------------------------------- ##
-CREATE INDEX index_minute
-ON vnpy.minute
+CREATE INDEX index_minute_XiFu_FromAli
+ON vnpy.minute_XiFu_FromAli
 (TradingDay, Minute, InstrumentID);  
 ## -------------------------------------------------------------------------- ## 
 
 ##----------- PARTITIONS ---------------------------------------------------- ##
-ALTER TABLE vnpy.minute
+ALTER TABLE vnpy.minute_XiFu_FromAli
     PARTITION BY RANGE( TO_DAYS(TradingDay) )(
     #---------------------------------------------------------------------------
     PARTITION p_2016_12 VALUES LESS THAN (TO_DAYS('2017-01-01')),
@@ -300,3 +316,30 @@ ALTER TABLE vnpy.minute
     );
 ## -------------------------------------------------------------------------- ##   
 
+
+################################################################################～～～～～～～～～～～～
+## vnpy.info                                                                  ## vnpy.info     
+################################################################################～～～～～～～～～～～～
+CREATE TABLE  vnpy.info_XiFu_FromAli(
+    TradingDay       DATE             NOT NULL,            ## 交易日期
+    InstrumentID     CHAR(30)         NOT NULL,            ## 合约名称
+    InstrumentName   CHAR(50)         NULL,                ## 合约名称
+    ProductClass     ChAR(20)         NULL,                ## 合约类型
+    ExchangeID       CHAR(20)         NULL,                ## 交易所
+    #-----------------------------------------------------
+    PriceTick        DECIMAL(10,5)    NOT NULL,           
+    VolumeMultiple   mediumint        NOT NULL,
+    ShortMarginRatio DECIMAL(5,4)     NULL,
+    LongMarginRatio  DECIMAL(5,4)     NULL,
+    # ---------------------------------------------------- 
+    OptionType       CHAR(20)         NULL,
+    Underlying       CHAR(20)         NULL,
+    StrikePrice      DECIMAL(15,5)    NULL,   
+    #-----------------------------------------------------
+    PRIMARY KEY (TradingDay, InstrumentID)         ## 主键唯一，重复不可输入
+    )DEFAULT CHARSET=utf8;
+##----------- INDEX --------------------------------------------------------- ##
+CREATE INDEX index_info_XiFu_FromAli
+ON vnpy.info_XiFu_FromAli
+(TradingDay, InstrumentID);  
+## -------------------------------------------------------------------------- ## 
