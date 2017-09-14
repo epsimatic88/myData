@@ -202,14 +202,14 @@ info <- data.table(status = paste("              (7) [数据统计]: 1 分钟入
 #-----------------------------------------------------------------------------
 print(paste0("#---------- Transforming Daily data ! ----------------------------#"))
 #-----------------------------------------------------------------------------
-if(format(Sys.time(),"H") > 6){
-  suppressMessages({
+
+suppressMessages({
     suppressWarnings({
       dt_allday <- dt2DailyBar(dt,"allday")
       dt_day    <- dt2DailyBar(dt,"day")
       dt_night  <- dt2DailyBar(dt,"night")
     })
-})}
+})
 
 ##############################################################################
 ##########

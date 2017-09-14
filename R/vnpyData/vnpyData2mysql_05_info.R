@@ -32,9 +32,10 @@ colnames(dtInfo) <- c('InstrumentID','InstrumentName','ProductClass','ExchangeID
 setcolorder(dtInfo, c('TradingDay',colnames(dtInfo)[1:(ncol(dtInfo)-1)]))
 
 ## =============================================================================
-mysql <- mysqlFetch('vnpy')
-dbSendQuery(mysql,paste0("DELETE FROM info
-            WHERE TradingDay = ", logTradingDay))
-dbWriteTable(mysql,"info",
+mysql <- mysqlFetch('vnpy', host = '192.168.1.166')
+dbSendQuery(mysql,paste0("DELETE FROM info_",coloSource,
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql, paste0("info_",coloSource),
              dtInfo, row.name　=　FALSE, append = T)
+print(paste0("#---------- Info has already been written in MySQL!!! ------------#"))
 ## =============================================================================

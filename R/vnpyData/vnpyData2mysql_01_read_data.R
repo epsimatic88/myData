@@ -36,9 +36,12 @@ if (tempHour %between% c(3,7) & !includeHistory) {
 ## 合并数据
 ## 1.去除 nchar 超过 8 的，比如 spd 套利合约
 ## 2.去除期权的数据
-dt <- list(dtNight, dtDay) %>% rbindlist() %>%
-      .[nchar(symbol) < 8] %>%
-      .[!grep("-P-|-C-", symbol)]
+# dt <- list(dtNight, dtDay) %>% rbindlist() %>%
+#       .[nchar(symbol) < 8] %>%
+
+dt <- list(dtNight, dtDay) %>% rbindlist()
+
+
 dt[, ":="(
     UpdateTime = substr(time,1,8),
     UpdateMillisec = as.numeric(substr(time,10,11)) * 100

@@ -4,41 +4,67 @@
 
 ## =============================================================================
 ## dtTick 写入数据库
-mysql <- mysqlFetch('vnpy')
-mysqlDBname <- paste(dbGetInfo(mysql)$dbname,
-                           dataPath,
-                           sep = ".")
+mysql <- mysqlFetch('vnpy', host = '192.168.1.166')
+mysqlDBname <- paste(dbGetInfo(mysql)$dbname, dataPath, sep = ".")
 
-dbSendQuery(mysql,paste0("DELETE FROM tick
-            WHERE TradingDay = ", logTradingDay))
-dbWriteTable(mysql, "tick",
-             dtTick, row.name = FALSE, append = T)
+dbSendQuery(mysql,paste0("DELETE FROM tick_",coloSource,
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql, paste0("tick_",coloSource),
+             dtTick %>% .[nchar(InstrumentID) < 8], row.name = FALSE, append = T)
+
+## -----------------------------------------------------------------------------
+dbSendQuery(mysql,paste0("DELETE FROM tick_",coloSource,"_options",
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql, paste0("tick_",coloSource,"_options"),
+             dtTick %>% 
+             .[grep("-P-|-C-|[0-9]{2,3}P[0-9]{2,3}|[0-9]{2,3}C[0-9]{2,3}", InstrumentID)]
+             , row.name = FALSE, append = T)
 ## =============================================================================
 
 ## =============================================================================
 ## 写入 Bar 数据
 ## Delete night minute data
-dbSendQuery(mysql,paste0("DELETE FROM minute
-            WHERE TradingDay = ", logTradingDay))
-dbWriteTable(mysql,"minute",
-             dtMinute, row.name　=　FALSE, append = T)
+dbSendQuery(mysql,paste0("DELETE FROM minute_",coloSource,
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql,paste0("minute_",coloSource),
+             dtMinute %>% .[nchar(InstrumentID) < 8], row.name　=　FALSE, append = T)
 
-dbSendQuery(mysql,paste0("DELETE FROM daily
-            WHERE TradingDay = ", logTradingDay))
+## -----------------------------------------------------------------------------
+dbSendQuery(mysql,paste0("DELETE FROM minute_",coloSource,"_options",
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql,paste0("minute_",coloSource,"_options"),
+             dtMinute %>% 
+             .[grep("-P-|-C-|[0-9]{2,3}P[0-9]{2,3}|[0-9]{2,3}C[0-9]{2,3}", InstrumentID)]
+             , row.name　=　FALSE, append = T)
+
+
+dbSendQuery(mysql,paste0("DELETE FROM daily_",coloSource,
+            " WHERE TradingDay = ", logTradingDay))
+## -----------------------------------------------------------------------------
+dbSendQuery(mysql,paste0("DELETE FROM daily_",coloSource,"_options",
+            " WHERE TradingDay = ", logTradingDay))
 
 if ( tempHour %between% c(15,19) | includeHistory) {
   ## -- DailyBar
-  dbWriteTable(mysql, "daily",
-               dt_allday, row.name　=　FALSE, append = T)
-  ## -- DayBar
-  dbWriteTable(mysql, "daily",
-               dt_day, row.name　=　FALSE, append = T)
+  dbWriteTable(mysql, paste0("daily_",coloSource),
+               rbind(dt_allday, dt_day, fill = TRUE) %>% .[nchar(InstrumentID) < 8]
+               , row.name　=　FALSE, append = T)
+  ## -- DailyBar
+  dbWriteTable(mysql, paste0("daily_",coloSource,"_options"),
+               rbind(dt_allday, dt_day, fill = TRUE) %>% 
+               .[grep("-P-|-C-|[0-9]{2,3}P[0-9]{2,3}|[0-9]{2,3}C[0-9]{2,3}", InstrumentID)]
+               , row.name　=　FALSE, append = T)
 }
 
 ## -- NightBar
 if(nrow(dt_night) != 0){  #--- 如果非空，则录入 MySQL 数据库
-  dbWriteTable(mysql, "daily",
-               dt_night, row.name　=　FALSE, append = T)
+  dbWriteTable(mysql, paste0("daily_",coloSource),
+               dt_night %>% .[nchar(InstrumentID) < 8], row.name　=　FALSE, append = T)
+
+  dbWriteTable(mysql, paste0("daily_",coloSource,"_options"),
+               dt_night %>% 
+               .[grep("-P-|-C-|[0-9]{2,3}P[0-9]{2,3}|[0-9]{2,3}C[0-9]{2,3}", InstrumentID)]
+               , row.name　=　FALSE, append = T)
 }
 
 print("#---------- WRITTING DATA INTO MySQL! ----------------------------#")
@@ -72,15 +98,15 @@ logInfo$Results     <- paste(info$status,collapse = "\n ")
 ## =============================================================================
 
 if ( tempHour %between% c(15,19) | includeHistory) {
-  mysql <- mysqlFetch('vnpy')
+  mysql <- mysqlFetch('vnpy', host = '192.168.1.166')
   ## =============================================================================
   if(exists('break_time_detector')){
-    dbWriteTable(mysql,'breakTime',
+    dbWriteTable(mysql,paste0('breakTime_',coloSource),
                  break_time_detector, row.name=FALSE, append = T)
+    print("#---------- WRITTING break_time_detector into MySQL! -------------#")
   }
-  print("#---------- WRITTING break_time_detector into MySQL! -------------#")
-
-  dbWriteTable(mysql, "log",
+  
+  dbWriteTable(mysql, paste0("log_",coloSource),
                logInfo, row.name = FALSE, append = T)
   print("#---------- WRITTING processing log into MySQL! ------------------#")
   ## =============================================================================

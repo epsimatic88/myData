@@ -15,14 +15,14 @@ setcolorder(break_time_detector, c('TradingDay',"BreakBeginTime", "BreakEndTime"
 #-----------------------------------------------------------------------------
 
 ################################################################################~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mysql <- mysqlFetch("vnpy")
+mysql <- mysqlFetch("vnpy", host = '192.168.1.166')
 mysqlDBname <- paste(dbGetInfo(mysql)$dbname,
                            dataPath,
                            sep = ".")
 
 print("#---------- NO DATA WRITTEN INTO MySQL! --------------------------#")
 #-------------------------------------------------------------------------------
-dbWriteTable(mysql, "breakTime",
+dbWriteTable(mysql, paste0("breakTime_", coloSource),
              break_time_detector, row.name = FALSE, append = T)
 print("#---------- WRITTING break_time_detector into MySQL! -------------#")
 
@@ -38,7 +38,7 @@ logInfo <- data.table(TradingDay  = logTradingDay
                        ,DataFile   = logDataFile
                        ,RscriptMain = logMainScript
                        ,RscriptSub = NA
-                       ,ProgBeginTime = begin_time_marker
+                       ,ProgBeginTime = logBeginTime
                        ,ProgEndTime   = Sys.time()
                        ,Results    = NA
                        ,Remarks    = NA
@@ -51,8 +51,10 @@ logInfo$RscriptSub  <- paste('(1) vnpyData2mysql_01_read_data.R',
                               sep = " \n ")
 logInfo$Results     <- paste(info$status,collapse = "\n ")
 ################################################################################~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-dbWriteTable(mysql, "log",
+if ( tempHour %between% c(15,19) | includeHistory) {
+dbWriteTable(mysql, paste0("log_",coloSource),
              logInfo, row.name = FALSE, append = T)
 print("#---------- WRITTING processing log into MySQL! ------------------#")
+}
 #-------------------------------------------------------------------------------
 dbDisconnect(mysql)

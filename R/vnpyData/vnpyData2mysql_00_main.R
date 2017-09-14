@@ -10,6 +10,18 @@
 ## CreateDate: 2017-07-12
 ################################################################################
 
+## 192.168.1.166: ==> XiFu_FromAli
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/FromAli/vn.data/TickData" "XiFu_FromAli"
+
+## 192.168.1.166: ==> YY1_FromPC
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/FromPC/YY1/TickData" "YY1_FromPC"
+
+## 192.168.1.135: ==> XiFu_From135
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/vn.data/XiFu/TickData" "XiFu_From135"
+
+## 192.168.1.135: ==> YY1_From135
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/vn.data/YY1/TickData" "YY1_From135"
+
 ################################################################################
 ## STEP 0: 初始化，载入包，设定初始条件
 ################################################################################
@@ -33,7 +45,12 @@ includeHistory <- FALSE
 
 
 ## =============================================================================
-dataPath <- "/data/ChinaFuturesTickData/FromAli/vn.data/TickData"
+# dataPath <- "/data/ChinaFuturesTickData/FromAli/vn.data/TickData"
+# coloSource <- "XiFu_FromAli"
+args <- commandArgs(trailingOnly = TRUE)
+dataPath <- args[1]
+coloSource <- args[2]
+
 allDataFiles <- list.files(dataPath, pattern = '\\.csv')
 
 ## 起始
@@ -48,7 +65,8 @@ endDay <- sapply(1:length(allDataFiles), function(i){
 }) %>% max()
 
 ## 需要更新到的最新日期的倒数
-tempHour <- as.numeric(format(Sys.time(), "%H"))
+# tempHour <- as.numeric(format(Sys.time(), "%H"))
+tempHour <- 5
 lastDay <- ifelse(tempHour %between% c(2,7) | tempHour %between% c(15,19), 0, 1)
 ## =============================================================================
 
@@ -56,13 +74,7 @@ lastDay <- ifelse(tempHour %between% c(2,7) | tempHour %between% c(15,19), 0, 1)
 ################################################################################
 ## STEP 1: 获取对应的
 ################################################################################
-# ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar_2011_2017.csv",
-#                               colClasses = list(character = c("nights","days"))) %>%
-#   .[(which(days >=  max(gsub("-", "", as.character(Sys.Date() - 250)), startDay) )[1]) :  ## 半年以内的数据
-#     (which(days <=  gsub("-", "", as.character(Sys.Date() - lastDay)) ) %>% .[length(.)]) ] %>%
-#   .[days >= '20170101']
-
-ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar_2011_2017.csv",
+ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar.csv",
                               colClasses = list(character = c("nights","days")))
 
 ## =============================================================================
@@ -124,11 +136,11 @@ for(k in 1:nrow(futuresCalendar)){
 
 
   ## ===========================================================================
-  mysql <- mysqlFetch('vnpy')
+  mysql <- mysqlFetch('vnpy', host = '192.168.1.166')
   ## 获取历史的日志，
   ## 判断是不是已经处理过数据文件了
-  mysqlDataFile <- dbGetQuery(mysql, "
-    SELECT DataFile FROM log") %>% as.data.table()
+  mysqlDataFile <- dbGetQuery(mysql, paste0("
+    SELECT DataFile FROM log_", coloSource)) %>% as.data.table()
   ## ===========================================================================
 
 
