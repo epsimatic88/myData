@@ -65,8 +65,8 @@ endDay <- sapply(1:length(allDataFiles), function(i){
 }) %>% max()
 
 ## 需要更新到的最新日期的倒数
-# tempHour <- as.numeric(format(Sys.time(), "%H"))
-tempHour <- 5
+tempHour <- as.numeric(format(Sys.time(), "%H"))
+# tempHour <- 5
 lastDay <- ifelse(tempHour %between% c(2,7) | tempHour %between% c(15,19), 0, 1)
 ## =============================================================================
 
@@ -182,5 +182,17 @@ for(k in 1:nrow(futuresCalendar)){
     }
     ############################################################################
   }
+
+  print(paste0("#-----------------------------------------------------------------#"))
+  print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!-#"))
+  print(paste0("#-----------------------------------------------------------------#"))
+
+  if ( coloSource == "XiFu_From135" ) {
+    print(paste0("#-----------------------------------------------------------------#"))
+    print(paste0("# Update MainContract Infomation  --------------------------------#"))
+    source('./R/Rconfig/MainContract_00_main.R')
+    print(paste0("#-----------------------------------------------------------------#"))
+  }
+
   print(paste0("# <", k, "> <--: at ", Sys.time()))
 }
