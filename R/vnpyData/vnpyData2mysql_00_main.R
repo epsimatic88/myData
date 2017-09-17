@@ -17,10 +17,10 @@
 ## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/FromPC/YY1/TickData" "YY1_FromPC"
 
 ## 192.168.1.135: ==> XiFu_From135
-## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/vn.data/XiFu/TickData" "XiFu_From135"
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/From135/vn.data/XiFu/TickData" "XiFu_From135"
 
 ## 192.168.1.135: ==> YY1_From135
-## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/vn.data/YY1/TickData" "YY1_From135"
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/From135/vn.data/YY1/TickData" "YY1_From135"
 
 ################################################################################
 ## STEP 0: 初始化，载入包，设定初始条件
@@ -45,8 +45,8 @@ includeHistory <- FALSE
 
 
 ## =============================================================================
-# dataPath <- "/data/ChinaFuturesTickData/FromAli/vn.data/TickData"
-# coloSource <- "XiFu_FromAli"
+# dataPath <- "/data/ChinaFuturesTickData/From135/vn.data/XiFu/TickData"
+# coloSource <- "YY1_From135"
 args <- commandArgs(trailingOnly = TRUE)
 dataPath <- args[1]
 coloSource <- args[2]
@@ -187,9 +187,10 @@ for(k in 1:nrow(futuresCalendar)){
   print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!-#"))
   print(paste0("#-----------------------------------------------------------------#"))
 
-  if ( coloSource == "XiFu_From135" ) {
+  if (tempHour %between% c(15,19) & coloSource == "XiFu_From135") {
     print(paste0("#-----------------------------------------------------------------#"))
     print(paste0("# Update MainContract Infomation  --------------------------------#"))
+    source('./R/FetchMysQL/vnpy_XiFu_From135.R')
     source('./R/Rconfig/MainContract_00_main.R')
     print(paste0("#-----------------------------------------------------------------#"))
   }
