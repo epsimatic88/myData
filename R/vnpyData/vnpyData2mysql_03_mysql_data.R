@@ -7,20 +7,7 @@
 mysql <- mysqlFetch('vnpy', host = '192.168.1.166')
 mysqlDBname <- paste(dbGetInfo(mysql)$dbname, dataPath, sep = ".")
 
-dbSendQuery(mysql,paste0("DELETE FROM tick_",coloSource,
-            " WHERE TradingDay = ", logTradingDay))
-dbWriteTable(mysql, paste0("tick_",coloSource),
-             dtTick %>% .[nchar(InstrumentID) < 8], row.name = FALSE, append = T)
-
-## -----------------------------------------------------------------------------
-dbSendQuery(mysql,paste0("DELETE FROM tick_",coloSource,"_options",
-            " WHERE TradingDay = ", logTradingDay))
-dbWriteTable(mysql, paste0("tick_",coloSource,"_options"),
-             dtTick %>% 
-             .[grep("-P-|-C-|[0-9]{2,3}P[0-9]{2,3}|[0-9]{2,3}C[0-9]{2,3}", InstrumentID)]
-             , row.name = FALSE, append = T)
-## =============================================================================
-
+print("#---------- WRITTING Bar INTO MySQL! -----------------------------#")
 ## =============================================================================
 ## 写入 Bar 数据
 ## Delete night minute data
@@ -67,8 +54,22 @@ if(nrow(dt_night) != 0){  #--- 如果非空，则录入 MySQL 数据库
                , row.name　=　FALSE, append = T)
 }
 
-print("#---------- WRITTING DATA INTO MySQL! ----------------------------#")
+print("#---------- WRITTING Tick INTO MySQL! ----------------------------#")
 ## =============================================================================
+dbSendQuery(mysql,paste0("DELETE FROM tick_",coloSource,
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql, paste0("tick_",coloSource),
+             dtTick %>% .[nchar(InstrumentID) < 8], row.name = FALSE, append = T)
+
+## -----------------------------------------------------------------------------
+dbSendQuery(mysql,paste0("DELETE FROM tick_",coloSource,"_options",
+            " WHERE TradingDay = ", logTradingDay))
+dbWriteTable(mysql, paste0("tick_",coloSource,"_options"),
+             dtTick %>% 
+             .[grep("-P-|-C-|[0-9]{2,3}P[0-9]{2,3}|[0-9]{2,3}C[0-9]{2,3}", InstrumentID)]
+             , row.name = FALSE, append = T)
+## =============================================================================
+
 
 
 ## =============================================================================
