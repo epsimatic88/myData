@@ -46,7 +46,7 @@ includeHistory <- FALSE
 
 ## =============================================================================
 # dataPath <- "/data/ChinaFuturesTickData/From135/vn.data/XiFu/TickData"
-# coloSource <- "YY1_From135"
+# coloSource <- "XiFu_From135"
 args <- commandArgs(trailingOnly = TRUE)
 dataPath <- args[1]
 coloSource <- args[2]
@@ -98,6 +98,20 @@ if (tempHour %between% c(15,19) & !includeHistory) {
 ## =============================================================================
 
 ## =============================================================================
+mysql <- mysqlFetch('vnpy', host = '192.168.1.166')
+dbTradingDay <- dbGetQuery(mysql, paste0("
+    select distinct TradingDay
+    from daily_", coloSource,
+    " where sector = 'allday'"
+  )) %>% as.data.table()
+tempCalendar <- ChinaFuturesCalendar %>%
+  .[(which(days >=  max(gsub("-", "", as.character(Sys.Date() - 250)), startDay) )[1]) :  ## 半年以内的数据
+    (which(days <=  gsub("-", "", as.character(Sys.Date() - lastDay)) ) %>% .[length(.)])]
+missingTradingDay <- tempCalendar[! days %in% dbTradingDay[,gsub('-','',TradingDay)]]
+## =============================================================================
+
+
+## =============================================================================
 ## 判断是不是需要处理历史的数据，还是只需要处理最新的数据
 if (includeHistory) {
   futuresCalendar <- ChinaFuturesCalendar[days %between% c(startDay, endDay)] %>% .[-1]
@@ -106,13 +120,13 @@ if (includeHistory) {
     futuresCalendar <- ChinaFuturesCalendar[nights < as.character(format(Sys.Date(),'%Y%m%d'))][.N]
   }
   if (tempHour %between% c(15,19)) {
-    futuresCalendar <- ChinaFuturesCalendar[days == as.character(format(Sys.Date(),'%Y%m%d'))]
+    # futuresCalendar <- ChinaFuturesCalendar[days == as.character(format(Sys.Date(),'%Y%m%d'))]
+    futuresCalendar <- missingTradingDay
   }
 }
 ## =============================================================================
 
-
-
+if (exists('futuresCalendar')) {
 ################################################################################
 # nrow(futures_calendar)
 for(k in 1:nrow(futuresCalendar)){
@@ -161,7 +175,9 @@ for(k in 1:nrow(futuresCalendar)){
     ## 1. 读取数据
     ## Input: data.csv
     ## Output: dt
-    source('./R/vnpyData/vnpyData2mysql_01_read_data.R')
+    if (class(try(source('./R/vnpyData/vnpyData2mysql_01_read_data.R'))) == 'try-error') {
+      next
+    }
     ## -------------------------------------------------------------------------
 
     ############################################################################
@@ -169,11 +185,9 @@ for(k in 1:nrow(futuresCalendar)){
       source('./R/vnpyData/vnpyData2mysql_02_manipulate_data.R')
       source('./R/vnpyData/vnpyData2mysql_03_mysql_data.R')
       ## -----------------------------------------------------------------------
-      if (tempHour %between% c(15,19) | includeHistory) {
-        try(
-          source('./R/vnpyData/vnpyData2mysql_05_info.R')
-          )
-      }
+      try(
+        source('./R/vnpyData/vnpyData2mysql_05_info.R')
+        )
       ## -----------------------------------------------------------------------
     }else{##---------- NA Data
       if (tempHour %between% c(15,19) | includeHistory) {
@@ -184,7 +198,7 @@ for(k in 1:nrow(futuresCalendar)){
   }
 
   print(paste0("#-----------------------------------------------------------------#"))
-  print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!-#"))
+  print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!"))
   print(paste0("#-----------------------------------------------------------------#"))
 
   if (tempHour %between% c(15,19) & coloSource == "XiFu_From135") {
@@ -196,4 +210,6 @@ for(k in 1:nrow(futuresCalendar)){
   }
 
   print(paste0("# <", k, "> <--: at ", Sys.time()))
+}
+################################################################################
 }
