@@ -126,6 +126,7 @@ if (includeHistory) {
 }
 ## =============================================================================
 
+
 if (exists('futuresCalendar')) {
 ################################################################################
 # nrow(futures_calendar)
@@ -203,8 +204,9 @@ for(k in 1:nrow(futuresCalendar)){
 
   if (tempHour %between% c(15,19) & coloSource == "XiFu_From135") {
     print(paste0("#-----------------------------------------------------------------#"))
-    print(paste0("# Update MainContract Infomation  --------------------------------#"))
+    print(paste0("#---------- Fetch MySQL Data into Bar ----------------------------#"))
     source('./R/FetchMysQL/vnpy_XiFu_From135.R')
+    print(paste0("#---------- Update MainContract Information  ---------------------#"))
     source('./R/Rconfig/MainContract_00_main.R')
     print(paste0("#-----------------------------------------------------------------#"))
   }
