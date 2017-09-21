@@ -9,8 +9,8 @@ dt2MinuteBar <- function(dt){
   setkey(dt,InstrumentID)
   temp <- lapply(unique(dt$InstrumentID), function(ii){ dt[ii] })
 
-  no.cores <- max(round(detectCores()/4), 4)
-  # no.cores <- 8
+  no.cores <- max(round(detectCores()/3), 4)
+  # no.cores <- max(round(detectCores()/4), 4)
   cl <- makeCluster(no.cores, type="FORK")
   # clusterExport(cl, c("dt","temp"))
   # clusterEvalQ(cl,{library(data.table);library(magrittr)})
@@ -23,7 +23,6 @@ dt2MinuteBar <- function(dt){
         OpenPrice = .SD[DeltaVolume !=0][1,LastPrice],
         HighPrice = max(.SD[DeltaVolume !=0][LastPrice !=0]$LastPrice, na.rm=TRUE),
         LowPrice  = min(.SD[DeltaVolume !=0][LastPrice !=0]$LastPrice, na.rm=TRUE),
-        #ClosePrice = .SD[nrow(.SD),LastPrice],
         ClosePrice = .SD[.N,LastPrice],
         #-----------------------------------------------------------------------------
         Volume = sum(.SD$DeltaVolume, na.rm=TRUE),
