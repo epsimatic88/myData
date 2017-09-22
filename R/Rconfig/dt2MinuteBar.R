@@ -15,29 +15,33 @@ dt2MinuteBar <- function(dt){
   # clusterExport(cl, c("dt","temp"))
   # clusterEvalQ(cl,{library(data.table);library(magrittr)})
   dtMinute <- parLapply(cl, 1:length(temp), function(ii){
+    ## -------------------------------------------------------------------------
     temp[[ii]] %>%
       .[, .SD[,.(
         #-----------------------------------------------------------------------------
         NumericExchTime = .SD[1,NumericExchTime],
         #-----------------------------------------------------------------------------
-        OpenPrice = .SD[DeltaVolume !=0][1,LastPrice],
-        HighPrice = max(.SD[DeltaVolume !=0][LastPrice !=0]$LastPrice, na.rm=TRUE),
-        LowPrice  = min(.SD[DeltaVolume !=0][LastPrice !=0]$LastPrice, na.rm=TRUE),
-        ClosePrice = .SD[.N,LastPrice],
+        OpenPrice = .SD[DeltaVolume != 0][1,LastPrice],
+        HighPrice = .SD[DeltaVolume != 0, max(LastPrice, na.rm=TRUE)],
+        LowPrice  = .SD[DeltaVolume != 0, min(LastPrice, na.rm=TRUE)],
+        ClosePrice = ifelse(nrow(.SD[DeltaVolume != 0]) != 0,
+                      .SD[DeltaVolume != 0][nrow(.SD[DeltaVolume != 0]), LastPrice],
+                      .SD[.N,LastPrice]),
         #-----------------------------------------------------------------------------
-        Volume = sum(.SD$DeltaVolume, na.rm=TRUE),
-        Turnover = sum(.SD$DeltaTurnover, na.rm=TRUE),
-        #-----------------------------------------------------------------------------
-        OpenOpenInterest = .SD[1,OpenInterest],
-        HighOpenInterest = max(.SD$OpenInterest, na.rm=TRUE),
-        LowOpenInterest = min(.SD$OpenInterest, na.rm=TRUE),
+        Volume            = sum(.SD$DeltaVolume, na.rm=TRUE),
+        Turnover          = sum(.SD$DeltaTurnover, na.rm=TRUE),
+        #                 -----------------------------------------------------------------------------
+        OpenOpenInterest  = .SD[1,OpenInterest],
+        HighOpenInterest  =.SD[,max(OpenInterest, na.rm=TRUE)],
+        LowOpenInterest   = .SD[,min(OpenInterest, na.rm=TRUE)],
         CloseOpenInterest = .SD[.N,OpenInterest],
-        #-----------------------------------------------------------------------------
-        UpperLimitPrice = unique(na.omit(.SD$UpperLimitPrice)),
-        LowerLimitPrice = unique(na.omit(.SD$LowerLimitPrice)),
-        SettlementPrice = .SD[.N, SettlementPrice]
+        #                 -----------------------------------------------------------------------------
+        UpperLimitPrice   = unique(na.omit(.SD$UpperLimitPrice)),
+        LowerLimitPrice   = unique(na.omit(.SD$LowerLimitPrice)),
+        SettlementPrice   = .SD[.N, SettlementPrice]
       )], by = .(TradingDay, InstrumentID, Minute)] %>%
       .[Volume != 0 & Turnover != 0]
+    ## -------------------------------------------------------------------------
   }) %>% rbindlist()
   stopCluster(cl)
 
