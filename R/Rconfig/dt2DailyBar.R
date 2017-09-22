@@ -28,30 +28,34 @@ dt2DailyBar <- function(x, daySector){
   #-----------------------------------------------------------------------------
   tempRes <- temp %>%
     .[,.SD[,.(
-      OpenPrice = .SD[Volume != 0][1, ifelse(is.na(OpenPrice) | OpenPrice == 0, LastPrice, OpenPrice)],
+      OpenPrice = ifelse(nrow(.SD[DeltaVolume != 0]) != 0,
+                .SD[DeltaVolume != 0][1, ifelse(is.na(OpenPrice) | OpenPrice == 0 | daySector == 'day',
+                  LastPrice, OpenPrice)],
+                .SD[Volume != 0][1, ifelse(is.na(OpenPrice) | OpenPrice == 0 | daySector == 'day',
+                  LastPrice, OpenPrice)]),
       HighPrice = ifelse(all(is.na(.SD$HighestPrice)) | sum(.SD$HighestPrice, na.rm=TRUE) == 0,
                          max(.SD[Volume != 0]$LastPrice, na.rm=TRUE),
                          max(.SD[Volume != 0]$HighestPrice, na.rm=TRUE)),
       LowPrice  = ifelse(all(is.na(.SD$LowestPrice)) | sum(.SD$LowestPrice, na.rm=TRUE) == 0,
                          min(.SD[Volume != 0][LastPrice !=0]$LastPrice, na.rm=TRUE),
-                         min(.SD[Volume != 0][LowestPrice !=0]$LowestPrice, na.rm=TRUE)),
+                         min(.SD[Volume != 0]$LowestPrice, na.rm=TRUE)),
       ## CZCE 郑商所的 ClosePrice 是有问题的，需要用到 LastPrice
       ClosePrice = ifelse(all(is.na(.SD$ClosePrice)) | sum(.SD$ClosePrice, na.rm=TRUE) == 0 |
                             .SD[,nchar(unique(gsub('[a-zA-Z]','',InstrumentID))) == 3],
                           .SD[Volume != 0][.N,LastPrice],
                           .SD[Volume != 0][.N,ClosePrice]),
       #-----------------------------------------------------------------------------
-      Volume = sum(.SD$DeltaVolume, na.rm=TRUE),
-      Turnover = sum(.SD$DeltaTurnover, na.rm=TRUE),
-      #-----------------------------------------------------------------------------
-      OpenOpenInterest = .SD[1,OpenInterest],
-      HighOpenInterest = max(.SD$OpenInterest, na.rm=TRUE),
-      LowOpenInterest = min(.SD$OpenInterest, na.rm=TRUE),
+      Volume            = sum(.SD$DeltaVolume, na.rm=TRUE),
+      Turnover          = sum(.SD$DeltaTurnover, na.rm=TRUE),
+      #                 -----------------------------------------------------------------------------
+      OpenOpenInterest  = .SD[1,OpenInterest],
+      HighOpenInterest  = .SD[,max(OpenInterest, na.rm=TRUE)],
+      LowOpenInterest   = .SD[,min(OpenInterest, na.rm=TRUE)],
       CloseOpenInterest = .SD[.N,OpenInterest],
-      #-----------------------------------------------------------------------------
-      UpperLimitPrice = unique(na.omit(.SD$UpperLimitPrice)),
-      LowerLimitPrice = unique(na.omit(.SD$LowerLimitPrice)),
-      SettlementPrice = .SD[.N, SettlementPrice]
+      #                 -----------------------------------------------------------------------------
+      UpperLimitPrice   = unique(na.omit(.SD$UpperLimitPrice)),
+      LowerLimitPrice   = unique(na.omit(.SD$LowerLimitPrice)),
+      SettlementPrice   = .SD[.N, SettlementPrice]
     )], by = .(TradingDay, InstrumentID)] %>%
     .[Volume != 0 & Turnover != 0] %>%
     .[, Sector := daySector]
