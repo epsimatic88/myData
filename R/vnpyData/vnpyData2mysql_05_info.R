@@ -13,14 +13,16 @@
 ################################################################################
 ## 读取合约信息
 ################################################################################
+print(paste0("#---------- WRITTING info INTO MySQL -----------------------------#"))
 
 dataPathInfo <- dataPath  %>% 
     gsub('TickData$', 'ContractInfo', .)
 allDataFilesInfo <- list.files(dataPathInfo, pattern = '\\.csv')
 
-dtInfo <- grep(futuresCalendar[k,days], allDataFilesInfo, value = T) %>%
+dtInfo <- grep(futuresCalendar[k,nights], allDataFilesInfo, value = T) %>%
     paste(dataPathInfo, ., sep = '/') %>% 
-    fread() %>% 
+    read_csv() %>% 
+    as.data.table() %>%
     .[, ":="(
       vtSymbol = NULL,
       gatewayName = NULL,
