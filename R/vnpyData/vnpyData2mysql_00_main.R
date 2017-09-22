@@ -47,6 +47,7 @@ includeHistory <- FALSE
 ## =============================================================================
 # dataPath <- "/data/ChinaFuturesTickData/From135/vn.data/XiFu/TickData"
 # coloSource <- "XiFu_From135"
+# 
 args <- commandArgs(trailingOnly = TRUE)
 dataPath <- args[1]
 coloSource <- args[2]
@@ -66,8 +67,8 @@ endDay <- sapply(1:length(allDataFiles), function(i){
 
 ## 需要更新到的最新日期的倒数
 tempHour <- as.numeric(format(Sys.time(), "%H"))
-# tempHour <- 5
-lastDay <- ifelse(tempHour %between% c(2,7) | tempHour %between% c(15,19), 0, 1)
+# tempHour <- 6
+lastDay <- ifelse(tempHour %between% c(2,8) | tempHour %between% c(15,20), 0, 1)
 ## =============================================================================
 
 
@@ -80,7 +81,7 @@ ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar.
 ## =============================================================================
 ## 判断当天是不是交易的日期
 ## 如果不是，则停止程序
-if (tempHour %between% c(2,7) & !includeHistory) {
+if (tempHour %between% c(2,8) & !includeHistory) {
   ## =============================================================================
   ## 以下都不需要修改
   ## =============================================================================
@@ -90,7 +91,7 @@ if (tempHour %between% c(2,7) & !includeHistory) {
   }
 
 }
-if (tempHour %between% c(15,19) & !includeHistory) {
+if (tempHour %between% c(15,20) & !includeHistory) {
   if (! format(Sys.Date()-0, '%Y%m%d') %in% ChinaFuturesCalendar[,days]) {
     stop('圣上，今天赌场关门哦！！！')
   }
@@ -116,10 +117,10 @@ missingTradingDay <- tempCalendar[! days %in% dbTradingDay[,gsub('-','',TradingD
 if (includeHistory) {
   futuresCalendar <- ChinaFuturesCalendar[days %between% c(startDay, endDay)] %>% .[-1]
 } else {##-- NOT INCLUDE HIOSTORY DATA
-  if (tempHour %between% c(2,7)) {
+  if (tempHour %between% c(2,8)) {
     futuresCalendar <- ChinaFuturesCalendar[nights < as.character(format(Sys.Date(),'%Y%m%d'))][.N]
   }
-  if (tempHour %between% c(15,19)) {
+  if (tempHour %between% c(15,20)) {
     # futuresCalendar <- ChinaFuturesCalendar[days == as.character(format(Sys.Date(),'%Y%m%d'))]
     futuresCalendar <- missingTradingDay
   }
@@ -132,6 +133,7 @@ if (exists('futuresCalendar')) {
 # nrow(futures_calendar)
 for(k in 1:nrow(futuresCalendar)){
   print(paste0("#-----------------------------------------------------------------#"))
+  print(paste0("#---------- ", coloSource))
   print(paste0("#---------- TradingDay :==> ", futuresCalendar[k, days], 
         " -----------------------------#"))
   ## ===========================================================================
@@ -191,7 +193,7 @@ for(k in 1:nrow(futuresCalendar)){
         )
       ## -----------------------------------------------------------------------
     }else{##---------- NA Data
-      if (tempHour %between% c(15,19) | includeHistory) {
+      if (tempHour %between% c(15,20) | includeHistory) {
         source('./R/vnpyData/vnpyData2mysql_04_NA_data.R')
       }
     }
@@ -202,7 +204,7 @@ for(k in 1:nrow(futuresCalendar)){
   print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!"))
   print(paste0("#-----------------------------------------------------------------#"))
 
-  if (tempHour %between% c(15,19) & coloSource == "XiFu_From135") {
+  if (tempHour %between% c(15,20) & coloSource == "XiFu_From135") {
     print(paste0("#-----------------------------------------------------------------#"))
     print(paste0("#---------- Fetch MySQL Data into Bar ----------------------------#"))
     source('./R/FetchMysQL/vnpy_XiFu_From135.R')
