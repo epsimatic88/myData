@@ -2,13 +2,9 @@
 ## myChinaFuturesCalendar.R
 ##
 ## 生成中国期货交易日
-## 1. 日盘时间
-## 2. 夜盘时间
+## 1. days  :日盘时间
+## 2. nights:夜盘时间
 ##
-## Input:
-## 根据交易所每年末（12月底）公布的次年交易安排
-##
-## Output
 ## =============================================================================
 rm(list = ls())
 setwd('/home/fl/myData')
@@ -29,7 +25,7 @@ sapply(pkgs, require, character.only = TRUE)
 ## 但是，如果是节假日，有可能超过 3 天，那么夜盘就是 NA 了。
 ## 这个应该很好理解。
 setNights <- function(x) {
-    for(i in 1:nrow(x)){
+    for (i in 1:nrow(x)) {
         if (is.na(x$nights[i])) next
 
         if( (x$days[i] - x$nights[i]) > 3){
@@ -37,13 +33,21 @@ setNights <- function(x) {
           x$nights[i] <- NA
         }
     }
+    x[, ":="(
+        nights = gsub('-','', nights),
+        days   = gsub('-','', days))]
     return(x)
 }
-## -----------------------------------------------------------------------------
 ## =============================================================================
 
 ## =============================================================================
-## http://www.sse.com.cn/disclosure/announcement/general/c/c_20161222_4218613.shtml
+## 查询交易所对节假日的安排
+## http://www.shfe.com.cn/news/
+## =============================================================================
+
+
+## =============================================================================
+## http://www.shfe.com.cn/news/notice/911232224.html
 yearID <- 2010
 daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
                          as.Date(paste0(yearID, '-01-01')))
@@ -58,7 +62,8 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. >= "2010-10-01" & . <= "2010-10-07")
           )]
 nights <- NA
-calendar2010 <- data.table(nights, days)
+
+calendar2010 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 
 
@@ -78,7 +83,8 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. >= "2011-10-01" & . <= "2011-10-07")
           )]
 nights <- NA
-calendar2011 <- data.table(nights, days)
+
+calendar2011 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 
 
@@ -97,7 +103,8 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. >= "2012-09-30" & . <= "2012-10-07")
           )]
 nights <- NA
-calendar2012 <- data.table(nights, days)
+
+calendar2012 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 
 
@@ -180,10 +187,11 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. >= "2015-05-01" & . <= "2015-05-01"),
              which(. >= "2015-06-20" & . <= "2015-06-22"),
              which(. >= "2015-09-03" & . <= "2015-09-05"),
-             which(. >= "2015-09-27" & . <= "2015-09-27"),
+             which(days>="2015-09-27"&days<="2015-09-27"),
              which(. >= "2015-10-01" & . <= "2015-10-07")
           )]
 nights <- c(NA, days[-length(days)]) %>% as.Date(., origin = "1970-01-01")
+nights[which(nights == '2015-09-25')] <- NA
 
 calendar2015 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
@@ -212,7 +220,7 @@ calendar2016 <- data.table(nights, days) %>% setNights()
 
 
 ## =============================================================================
-## http://www.shfe.com.cn/news/notice/911232224.html
+## http://www.shfe.com.cn/news/notice/911326468.html
 yearID <- 2017
 daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
                          as.Date(paste0(yearID, '-01-01')))
@@ -227,6 +235,10 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. == "2017-12-31")
           )]
 nights <- c(NA, days[-length(days)]) %>% as.Date(., origin = "1970-01-01")
-calendar2017 <- data.table(nights, days)
+
+calendar2017 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 
+calendar <- rbind(calendar2010, calendar2011, calendar2012, calendar2013, 
+                  calendar2014, calendar2015, calendar2016, calendar2017)
+fwrite(calendar, './data/ChinaFuturesCalendar/ChinaFuturesCalendar.csv')
