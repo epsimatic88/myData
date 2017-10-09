@@ -60,7 +60,8 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. >= "2010-06-14" & . <= "2010-06-16"),
              which(. >= "2010-09-22" & . <= "2010-09-24"),
              which(. >= "2010-10-01" & . <= "2010-10-07")
-          )]
+          )] %>% 
+          .[which(. >= '2010-04-16')]
 nights <- NA
 
 calendar2010 <- data.table(nights, days) %>% setNights()
