@@ -49,10 +49,10 @@ setNights <- function(x) {
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/911232224.html
 yearID <- 2010
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2010-01-01" & . <= "2010-01-03"),
              which(. >= "2010-02-13" & . <= "2010-02-19"),
              which(. >= "2010-04-03" & . <= "2010-04-05"),
@@ -60,7 +60,7 @@ days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
              which(. >= "2010-06-14" & . <= "2010-06-16"),
              which(. >= "2010-09-22" & . <= "2010-09-24"),
              which(. >= "2010-10-01" & . <= "2010-10-07")
-          )] %>% 
+          )] %>%
           .[which(. >= '2010-04-16')]
 nights <- NA
 
@@ -71,10 +71,10 @@ calendar2010 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/11272678.html
 yearID <- 2011
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2011-01-01" & . <= "2011-01-03"),
              which(. >= "2011-02-02" & . <= "2011-02-08"),
              which(. >= "2011-04-03" & . <= "2011-04-05"),
@@ -92,10 +92,10 @@ calendar2011 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/111211125.html
 yearID <- 2012
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2012-01-01" & . <= "2012-01-03"),
              which(. >= "2012-01-22" & . <= "2012-01-28"),
              which(. >= "2012-04-02" & . <= "2012-04-04"),
@@ -113,10 +113,10 @@ calendar2012 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/211216642.html
 yearID <- 2013
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2013-01-01" & . <= "2013-01-03"),
              which(. >= "2013-01-01" & . <= "2013-01-03"),
              which(. >= "2013-02-09" & . <= "2013-02-15"),
@@ -136,10 +136,10 @@ calendar2013 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/211216642.html
 yearID <- 2014
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2014-01-01" & . <= "2014-01-01"),
              which(. >= "2014-01-31" & . <= "2014-02-06"),
              which(. >= "2014-04-05" & . <= "2014-04-07"),
@@ -157,10 +157,10 @@ calendar2014 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/211216642.html
 yearID <- 2014
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2014-01-01" & . <= "2014-01-01"),
              which(. >= "2014-01-31" & . <= "2014-02-06"),
              which(. >= "2014-04-05" & . <= "2014-04-07"),
@@ -178,10 +178,10 @@ calendar2014 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/911321768.html
 yearID <- 2015
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2015-01-01" & . <= "2015-01-03"),
              which(. >= "2015-02-18" & . <= "2015-02-24"),
              which(. >= "2015-04-05" & . <= "2015-04-06"),
@@ -201,10 +201,10 @@ calendar2015 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/911323994.html
 yearID <- 2016
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2016-01-01" & . <= "2016-01-03"),
              which(. >= "2016-02-07" & . <= "2016-02-13"),
              which(. >= "2016-04-02" & . <= "2016-04-04"),
@@ -223,16 +223,16 @@ calendar2016 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 ## http://www.shfe.com.cn/news/notice/911326468.html
 yearID <- 2017
-daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) - 
+daysInYear <- as.numeric(as.Date(paste0(yearID, '-12-31')) -
                          as.Date(paste0(yearID, '-01-01')))
-days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>% 
-        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>% 
+days <- as.Date(0:daysInYear, origin = paste0(yearID, '-01-01')) %>%
+        .[-which(weekdays(.) %in% c("Saturday", "Sunday"))] %>%
         .[-c(which(. >= "2017-01-01" & . <= "2017-01-02"),
              which(. >= "2017-01-27" & . <= "2017-02-02"),
              which(. >= "2017-04-02" & . <= "2017-04-04"),
              which(. >= "2017-04-29" & . <= "2017-05-01"),
              which(. >= "2017-05-28" & . <= "2017-05-30"),
-             which(. >= "2017-10-01" & . <= "2017-10-07"),
+             which(. >= "2017-10-01" & . <= "2017-10-08"),
              which(. == "2017-12-31")
           )]
 nights <- c(NA, days[-length(days)]) %>% as.Date(., origin = "1970-01-01")
@@ -240,6 +240,27 @@ nights <- c(NA, days[-length(days)]) %>% as.Date(., origin = "1970-01-01")
 calendar2017 <- data.table(nights, days) %>% setNights()
 ## =============================================================================
 
-calendar <- rbind(calendar2010, calendar2011, calendar2012, calendar2013, 
+calendar <- rbind(calendar2010, calendar2011, calendar2012, calendar2013,
                   calendar2014, calendar2015, calendar2016, calendar2017)
 fwrite(calendar, './data/ChinaFuturesCalendar/ChinaFuturesCalendar.csv')
+
+## =============================================================================
+## 录入 MySQL 数据库
+library(RMySQL)
+mysql <-   dbConnect(MySQL(),
+                     dbname   = 'dev',
+                     host     = '192.168.1.166',
+                     port     = 3306,
+                     user     = 'fl',
+                     password = 'abc@123')
+dbSendQuery(mysql, "
+            CREATE TABLE IF NOT EXISTS dev.ChinaFuturesCalendar(
+              nights Date,
+              days Date NOT NULL
+            )
+            ")
+dbSendQuery(mysql,"truncate table ChinaFuturesCalendar")
+dbWriteTable(mysql, "ChinaFuturesCalendar",
+             calendar, row.names=FALSE, append=TRUE)
+## =============================================================================
+
