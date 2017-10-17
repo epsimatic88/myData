@@ -34,6 +34,9 @@ exchCalendar <- ChinaFuturesCalendar[,":="(calendarYear = substr(days,1,4),
                                            calendarYearMonth = substr(days,1,6),
                                            calendarDay = substr(days,7,8))]
 exchURL <- "http://www.cffex.com.cn/sj/hqsj/rtj/"
+
+dataPath <- '/home/william/Documents/Exchange/CFFEX/'
+# dataPath <- "./data/Bar/Exchange/CFFEX/"
 ################################################################################
 
 
@@ -42,7 +45,7 @@ exchURL <- "http://www.cffex.com.cn/sj/hqsj/rtj/"
 ################################################################################
 cl <- makeCluster(round(detectCores()/4), type='FORK')
 parSapply(cl, 1:nrow(ChinaFuturesCalendar), function(i){
-    tempDir <- paste0("./data/Bar/Exchange/CFFEX/",exchCalendar[i,calendarYear])
+    tempDir <- paste0(dataPath,exchCalendar[i,calendarYear])
 
     if (!dir.exists(tempDir)) dir.create(tempDir)
 
