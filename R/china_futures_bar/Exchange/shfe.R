@@ -55,7 +55,7 @@ dataPath <- '/home/william/Documents/Exchange/SHFE/'
 ## 2. rvest
 ## 3. XML
 ################################################################################
-exchURL <- "http://www.shfe.com.cn/statements/dataview.html?paramid=pm&paramdate="
+exchURL <- "http://www.shfe.com.cn/statements/dataview.html?paramid=kx&paramdate="
 
 ################################################################################
 ## 后台开启一下命令
@@ -78,10 +78,10 @@ shfeData <- function(i) {
   ## ===========================================================================
   tempDir <- paste0(dataPath,exchCalendar[i,calendarYear])
 
-  if (!dir.exists(tempDir)) dir.create(tempDir)
+  if (!dir.exists(tempDir)) dir.create(tempDir, recursive = TRUE)
   ## ===========================================================================
 
-  tempURL <- paste0(exchURL, ChinaFuturesCalendar[i,days])
+  tempURL <- paste0(exchURL, exchCalendar[i,days])
 
   ## ===========================================================================
   ## 判断文件是不是已经下载了
@@ -104,21 +104,31 @@ shfeData <- function(i) {
   remDr$open(silent = TRUE)
   remDr$navigate(tempURL)
   Sys.sleep(0.5)
-  temp <- remDr$findElements(using = 'id', value = 'li_all')[[1]]
 
-  #-- 点击选择全部合约
-  tempWeb <- temp$clickElement()
-  Sys.sleep(0.5)
+  ## ---------------------------------------------------------------------------
+  tempTitle <- remDr$findElements(using = 'id', value = 'datatitle')[[1]]
+  tempQueryDay <- tempTitle$getElementAttribute('outerHTML')[[1]] %>% 
+    read_html(encoding = 'GB18030') %>% 
+    html_node('strong') %>% 
+    html_text() %>% 
+    gsub('\\D','',.)
+  if (tempQueryDay != exchCalendar[i,days]) return(NULL)
+  ## ---------------------------------------------------------------------------
+
+  ## ---------------------------------------------------------------------------
   #-- 找到数据
-  tempData <- remDr$findElements(using = 'id', value = 'addedtable')[[1]]
+  tempTable <- remDr$findElements(using = 'id', value = 'addedtable')[[1]]
   
-  webData <- tempData$getElementAttribute('outerHTML')[[1]] %>% 
-    read_html() %>% 
-    html_node('table') %>% 
-    html_table(fill = TRUE)
+  webData <- tempTable$getElementAttribute('outerHTML')[[1]] %>% 
+    read_html(encoding = 'GB18030') %>% 
+    html_nodes('table') %>% 
+    html_table(fill = TRUE, header=FALSE) %>% 
+    as.data.table() %>% 
+    .[-grep('注：|报价单位',X1)]
 
   print(webData)
-  
+  ## ---------------------------------------------------------------------------  
+
   tryNo <- 0
   while( (!file.exists(destFile) | file.size(destFile) < 1000) & (tryNo < 10) ){
     openxlsx::write.xlsx(webData, file = destFile,

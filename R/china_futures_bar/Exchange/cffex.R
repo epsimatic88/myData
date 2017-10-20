@@ -32,11 +32,12 @@ ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar.
 
 exchCalendar <- ChinaFuturesCalendar[,":="(calendarYear = substr(days,1,4),
                                            calendarYearMonth = substr(days,1,6),
+                                           calendarMonth = substr(days,5,6),
                                            calendarDay = substr(days,7,8))]
 exchURL <- "http://www.cffex.com.cn/sj/hqsj/rtj/"
 
-dataPath <- '/home/william/Documents/Exchange/CFFEX/'
-# dataPath <- "./data/Bar/Exchange/CFFEX/"
+# dataPath <- '/home/william/Documents/Exchange/CFFEX/'
+dataPath <- "./data/Bar/Exchange/CFFEX/"
 ################################################################################
 
 

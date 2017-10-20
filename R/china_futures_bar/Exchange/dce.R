@@ -78,7 +78,7 @@ fetchData <- function(year, month, day, exchURL, tryNo) {
   remDr$open(silent = T)
   remDr$deleteAllCookies()
   remDr$navigate(exchURL)
-  Sys.sleep(0.1)
+  Sys.sleep(1)
 
   ##--------------------------------------------------------------------------
   ## 以下用于选择交易日期
@@ -130,7 +130,7 @@ fetchData <- function(year, month, day, exchURL, tryNo) {
 
   ## 最后确定选择的 Day
   tempDayInfo[[tempDayClick]]$clickElement()
-  Sys.sleep(ifelse(tryNo <= 5, 1, sqrt(tryNo)+1))
+  Sys.sleep(ifelse(tryNo <= 3, 2, sqrt(tryNo)+2))
 
   ## ---------------------------------------------------------------------------
   tempHeader <- remDr$findElement(using = 'class', value = 'tradeResult02')
@@ -179,6 +179,7 @@ dceData <- function(i) {
                      tempTradingDay,'.xlsx')
 
   print('## -------------------- ##')
+  print(paste0('## i:', i))
   print(tempTradingDay)
   print('## -------------------- ##')
 
