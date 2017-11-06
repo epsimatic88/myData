@@ -36,8 +36,8 @@ exchCalendar <- ChinaFuturesCalendar[,":="(calendarYear = substr(days,1,4),
                                            calendarYearMonth = substr(days,1,6),
                                            calendarMonth = substr(days,5,6),
                                            calendarDay = substr(days,7,8))]
-dataPath <- '/home/william/Documents/CZCE/'
-# dataPath <- "./data/Bar/Exchange/CZCE/"
+dataPath <- '/home/william/Documents/Exchange/SHFE/'
+# dataPath <- "./data/Bar/Exchange/SHFE/"
 
 ##------------------------------------------------------------------------------
 if(Sys.info()['sysname'] == 'Windows'){
@@ -45,17 +45,11 @@ if(Sys.info()['sysname'] == 'Windows'){
 }
 ##------------------------------------------------------------------------------
 
-dataPath <- '/home/william/Documents/Exchange/SHFE/'
-# dataPath <- "./data/Bar/Exchange/SHFE/"
 
 ################################################################################
 ## SHFE: 上期所
-## 需要用到 javascript 爬虫
-## 1. RSelenium
-## 2. rvest
-## 3. XML
-################################################################################
 exchURL <- "http://www.shfe.com.cn/statements/dataview.html?paramid=kx&paramdate="
+################################################################################
 
 ################################################################################
 ## 后台开启一下命令
@@ -80,7 +74,6 @@ shfeData <- function(i) {
 
   if (!dir.exists(tempDir)) dir.create(tempDir, recursive = TRUE)
   ## ===========================================================================
-
   tempURL <- paste0(exchURL, exchCalendar[i,days])
 
   ## ===========================================================================
@@ -89,12 +82,8 @@ shfeData <- function(i) {
   destFile <- paste0(tempDir, "/",
                      ChinaFuturesCalendar[i,days],".xlsx")
 
-  if(file.exists(destFile)){
-    ##--- 返回上一层目录
-    # setwd("../..")
-    # next
-    return(NULL)
-  }
+  if (file.exists(destFile)) return(NULL)
+
   ## ===========================================================================
   
   ## ===========================================================================
@@ -130,7 +119,7 @@ shfeData <- function(i) {
   ## ---------------------------------------------------------------------------  
 
   tryNo <- 0
-  while( (!file.exists(destFile) | file.size(destFile) < 1000) & (tryNo < 10) ){
+  while ( (!file.exists(destFile) | file.size(destFile) < 1000) & (tryNo < 10) ){
     openxlsx::write.xlsx(webData, file = destFile,
                          colNames = FALSE, rowNames = FALSE)
     tryNo <- tryNo + 1
@@ -138,9 +127,6 @@ shfeData <- function(i) {
   
   ## ===========================================================================
   ## 关闭浏览器
-  # 等待 10 seconds
-  # Sys.sleep(3)
-  # remDr$quit()
   try({
     system('pkill -f firefox')
     system('pkill -f geckodriver')
@@ -162,7 +148,6 @@ shfeData <- function(i) {
 
 
 ## =============================================================================
-sapply(1:nrow(ChinaFuturesCalendar), function(i){
-  try(shfeData(i))
-})
+sapply(1:nrow(ChinaFuturesCalendar),shfeData)
 ## =============================================================================
+
