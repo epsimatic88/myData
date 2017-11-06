@@ -5,22 +5,34 @@
 ## Author: William Fang
 ## Date  : 2017-08-21
 ################################################################################
+
+
+################################################################################
+## STEP 0: 初始化，载入包，设定初始条件
+################################################################################
 rm(list = ls())
+logMainScript <- c("shfe.R")
 
-library(methods)
-library(data.table)
-library(magrittr)
+if (class(try(setwd('/home/fl/myData/'))) == 'try-error') {
+  setwd('/run/user/1000/gvfs/sftp:host=192.168.1.166,user=fl/home/fl/myData')
+}
+suppressMessages({
+  source('./R/Rconfig/myInit.R')
+})
 library(RSelenium)
-library(parallel)
-library(rvest)
-
 ################################################################################
-setwd("/home/william/Documents/oiRank")
+## STEP 1: 获取对应的交易日期
 ################################################################################
+ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar.csv",
+                              colClasses = list(character = c("nights","days"))) %>% 
+                              .[days < format(Sys.Date(),'%Y%m%d')]
 
-ChinaFuturesCalendar <- fread("./R/ChinaFuturesCalendar.csv") %>% 
-  .[days <= gsub("-","",Sys.Date() - 1)] %>% 
-  .[,.(days)]
+exchCalendar <- ChinaFuturesCalendar[,":="(calendarYear = substr(days,1,4),
+                                           calendarYearMonth = substr(days,1,6),
+                                           calendarMonth = substr(days,5,6),
+                                           calendarDay = substr(days,7,8))]
+dataPath <- '/home/william/Documents/oiRank/SHFE/'
+# dataPath <- "./data/Bar/oiRank/SHFE/"
 
 ##------------------------------------------------------------------------------
 if(Sys.info()['sysname'] == 'Windows'){
@@ -31,12 +43,9 @@ if(Sys.info()['sysname'] == 'Windows'){
 
 ################################################################################
 ## SHFE: 上期所
-## 需要用到 javascript 爬虫
-## 1. RSelenium
-## 2. rvest
-## 3. XML
-################################################################################
 exchURL <- "http://www.shfe.com.cn/statements/dataview.html?paramid=pm&paramdate="
+################################################################################
+
 
 ################################################################################
 ## 后台开启一下命令
@@ -54,116 +63,23 @@ remDr$getStatus()
 ################################################################################
 ## 开始下载数据
 ## 1.持仓排名
-## 2.仓单日报
 ################################################################################
 
-#-------------------------------------------------------------------------------
-# 1.持仓排名
-# for(i in 1:nrow(ChinaFuturesCalendar)){
-
-#   tempURL <- paste0(exchURL, ChinaFuturesCalendar[i,days])
-
-#   ## ===========================================================================
-#   ## 设置路径
-#   ## ---------------------------------------------------------------------------
-#   tempPath <- "./data/SHFE/"
-#   if (!dir.exists(tempPath)) dir.create(tempPath)
-
-#   setwd(tempPath)
-#   if(!dir.exists(ChinaFuturesCalendar[i,substr(days,1,4)])){
-#     dir.create(ChinaFuturesCalendar[i,substr(days,1,4)])
-#   }
-#   ## ===========================================================================
-
-#   ## ===========================================================================
-#   ## 判断文件是不是已经下载了
-#   ## ---------------------------------------------------------------------------
-#   destFile <- paste0(ChinaFuturesCalendar[i,substr(days,1,4)], "/",
-#                      ChinaFuturesCalendar[i,days],".xlsx")
-
-#   if(file.exists(destFile)){
-#     ##--- 返回上一层目录
-#     setwd("../..")
-#     next
-#   }
-#   ## ===========================================================================
-  
-#   ## ===========================================================================
-#   ## 开始准备下载数据
-#   # 需要保持开启
-#   # ----------------------------------------------------------------------------
-#   remDr$open()
-#   remDr$navigate(tempURL)
-#   Sys.sleep(1)
-#   temp <- remDr$findElements(using = 'id', value = 'li_all')[[1]]
-  
-#   #-- 点击选择全部合约
-#   #-- 看看是不是已经选择了
-#   #-  for(k in seq(k,20)){
-#   #-    temp$highlightElement()
-#   #-  }
-
-#   #-- 点击选择全部合约
-#   tempWeb <- temp$clickElement()
-#   Sys.sleep(2)
-#   #-- 找到数据
-#   tempData <- remDr$findElements(using = 'id', value = 'addedtable')[[1]]
-  
-#   webData <- tempData$getElementAttribute('outerHTML')[[1]] %>% 
-#     read_html() %>% 
-#     html_node('table') %>% 
-#     html_table(fill = TRUE)
-  
-#   if(!file.exists(destFile)){
-#     openxlsx::write.xlsx(webData, file = destFile,
-#                          colNames = FALSE, rowNames = FALSE)
-#   }
-  
-  
-#   # 等待 10 seconds
-#   # Sys.sleep(3)
-#   # remDr$quit()
-#   try(
-#     system('pkill -f firefox')
-#   )
-
-#   ##--- 返回上一层目录
-#   setwd("../..")
-  
-#   ## Progress bar
-#   pb <- txtProgressBar(min = 0, max = nrow(ChinaFuturesCalendar), style = 3)
-#   # update progress bar
-#   setTxtProgressBar(pb, i)
-# }
-
-
 shfeData <- function(i) {
-  tempURL <- paste0(exchURL, ChinaFuturesCalendar[i,days])
-
   ## ===========================================================================
-  ## 设置路径
-  ## ---------------------------------------------------------------------------
-  tempPath <- "./data/SHFE/"
-  if (!dir.exists(tempPath)) dir.create(tempPath)
+  tempDir <- paste0(dataPath,exchCalendar[i,calendarYear])
 
-  setwd(tempPath)
-  if(!dir.exists(ChinaFuturesCalendar[i,substr(days,1,4)])){
-    dir.create(ChinaFuturesCalendar[i,substr(days,1,4)])
-  }
+  if (!dir.exists(tempDir)) dir.create(tempDir, recursive = TRUE)
   ## ===========================================================================
+  tempURL <- paste0(exchURL, exchCalendar[i,days])
 
   ## ===========================================================================
   ## 判断文件是不是已经下载了
   ## ---------------------------------------------------------------------------
-  destFile <- paste0(ChinaFuturesCalendar[i,substr(days,1,4)], "/",
+  destFile <- paste0(tempDir, "/",
                      ChinaFuturesCalendar[i,days],".xlsx")
 
-  if(file.exists(destFile)){
-    ##--- 返回上一层目录
-    # setwd("../..")
-    # next
-    return(NULL)
-  }
+  if (file.exists(destFile)) return(NULL)
   ## ===========================================================================
   
   ## ===========================================================================
@@ -173,14 +89,20 @@ shfeData <- function(i) {
   remDr$open(silent = TRUE)
   remDr$navigate(tempURL)
   Sys.sleep(1)
-  temp <- remDr$findElements(using = 'id', value = 'li_all')[[1]]
-  
-  #-- 点击选择全部合约
-  #-- 看看是不是已经选择了
-  #-  for(k in seq(k,20)){
-  #-    temp$highlightElement()
-  #-  }
 
+  ## ---------------------------------------------------------------------------
+  tempTitle <- remDr$findElements(using = 'id', value = 'datatitle')[[1]]
+  tempQueryDay <- tempTitle$getElementAttribute('outerHTML')[[1]] %>% 
+    read_html(encoding = 'GB18030') %>% 
+    html_nodes('table') %>% 
+    html_table() %>% 
+    .[[1]] %>% 
+    .[2, 'X1'] %>% 
+    gsub('-','',.)
+  if (tempQueryDay != exchCalendar[i,days]) return(NULL)
+  ## ---------------------------------------------------------------------------
+
+  temp <- remDr$findElements(using = 'id', value = 'li_all')[[1]]
   #-- 点击选择全部合约
   tempWeb <- temp$clickElement()
   Sys.sleep(1)
@@ -191,35 +113,24 @@ shfeData <- function(i) {
     read_html() %>% 
     html_node('table') %>% 
     html_table(fill = TRUE)
-  
-  if(!file.exists(destFile) | file.size(destFile) < 1000){
+
+  tryNo <- 0
+  while ( (!file.exists(destFile) | file.size(destFile) < 1000) & (tryNo < 10) ){
     openxlsx::write.xlsx(webData, file = destFile,
                          colNames = FALSE, rowNames = FALSE)
+    tryNo <- tryNo + 1
   }
-  
   
   ## ===========================================================================
   ## 关闭浏览器
-  # 等待 10 seconds
-  # Sys.sleep(3)
-  # remDr$quit()
   try({
     system('pkill -f firefox')
+    system('pkill -f geckodriver')
     system('rm -rf /tmp/rust_mozprofile*')
   })
   ## ===========================================================================
-
-  # ## ===========================================================================
-  # ##--- 返回上一层目录
-  # setwd("../..")
-  # ## ===========================================================================
 }
 
 ## =============================================================================
-sapply(1:nrow(ChinaFuturesCalendar), function(i){
-  try(
-    shfeData(i)
-    )
-  setwd("../..")
-})
+sapply(1:nrow(ChinaFuturesCalendar),shfeData)
 ## =============================================================================
