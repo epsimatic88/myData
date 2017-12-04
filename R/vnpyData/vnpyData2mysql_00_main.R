@@ -1,5 +1,5 @@
 ################################################################################
-##! vnpyData2mysql_00_main.R
+## vnpyData2mysql_00_main.R
 ## 这是主函数:
 ## 用于录入 vnpyData 的数据到 MySQL 数据库
 ##
@@ -21,6 +21,9 @@
 
 ## 192.168.1.135: ==> YY1_From135
 ## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/From135/vn.data/YY1/TickData" "YY1_From135"
+
+## Ali: ==> YunYang1_FromAli
+## /usr/bin/Rscript /home/fl/myData/R/vnpyData/vnpyData2mysql_00_main.R "/data/ChinaFuturesTickData/FromAli/vn.data/TickData" "YunYang1_FromAli"
 
 ################################################################################
 ## STEP 0: 初始化，载入包，设定初始条件
@@ -45,13 +48,24 @@ includeHistory <- FALSE
 
 
 ## =============================================================================
-# dataPath <- "/data/ChinaFuturesTickData/From135/vn.data/XiFu/TickData"
-# coloSource <- "XiFu_From135"
-# 
+# dataPath <- "/data/ChinaFuturesTickData/FromPC/vn.data/YunYang1/TickData"
+# coloSource <- "YunYang1_FromPC"
+#
 args <- commandArgs(trailingOnly = TRUE)
 dataPath <- args[1]
 coloSource <- args[2]
 
+allDataFiles <- list.files(dataPath, pattern = '\\.csv')
+## -------------------------------------------------------------------------
+## 解压数据文件
+tarDataFile <- list.files(dataPath, pattern = '\\.tar')
+sapply(tarDataFile, function(x) {
+  tempTar <- paste0(dataPath,'/',x)
+  tempFile <- gsub('\\.tar\\.bz2','\\.csv',x)
+  if (! tempFile %in% allDataFiles)
+    tarCommand <- paste("tar -jxvf ", tempTar, "-C", dataPath) %>% system()
+})
+## -------------------------------------------------------------------------
 allDataFiles <- list.files(dataPath, pattern = '\\.csv')
 
 ## 起始
@@ -85,7 +99,7 @@ if (tempHour %between% c(2,8) & !includeHistory) {
   ## =============================================================================
   ## 以下都不需要修改
   ## =============================================================================
-  if (! format(Sys.Date()-0, '%Y%m%d') %in% ChinaFuturesCalendar[,days] & 
+  if (! format(Sys.Date()-0, '%Y%m%d') %in% ChinaFuturesCalendar[,days] &
       ! format(Sys.Date()-1, '%Y%m%d') %in% ChinaFuturesCalendar[,nights]) {
     stop('圣上，今天赌场关门哦！！！')
   }
@@ -106,7 +120,7 @@ dbTradingDay <- dbGetQuery(mysql, paste0("
     " where sector = 'allday'"
   )) %>% as.data.table()
 tempCalendar <- ChinaFuturesCalendar %>%
-  .[(which(days >=  max(gsub("-", "", as.character(Sys.Date() - 250)), startDay) )[1]) :  ## 半年以内的数据
+  .[(which(days >  max(gsub("-", "", as.character(Sys.Date() - 250)), startDay) )[1]) :  ## 半年以内的数据
     (which(days <=  gsub("-", "", as.character(Sys.Date() - lastDay)) ) %>% .[length(.)])]
 missingTradingDay <- tempCalendar[! days %in% dbTradingDay[,gsub('-','',TradingDay)]]
 ## =============================================================================
@@ -132,9 +146,10 @@ if (exists('futuresCalendar')) {
 ################################################################################
 # nrow(futures_calendar)
 for(k in 1:nrow(futuresCalendar)){
+  ## source('./R/Rconfig/myDay.R')
   print(paste0("#-----------------------------------------------------------------#"))
   print(paste0("#---------- ", coloSource))
-  print(paste0("#---------- TradingDay :==> ", futuresCalendar[k, days], 
+  print(paste0("#---------- TradingDay :==> ", futuresCalendar[k, days],
         " -----------------------------#"))
   ## ===========================================================================
   ## 用于记录日志：Log
@@ -164,12 +179,12 @@ for(k in 1:nrow(futuresCalendar)){
   ## ===========================================================================
   ## 判断已经在处理的系统日志里面
   ## 则不需要再处理数据文件了
-  if( logDataFile %in% mysqlDataFile$DataFile ){
+  if ( logDataFile %in% mysqlDataFile$DataFile ) {
     print(paste0("#---------- Data has already been written in MySQL!!! ------------#"))
     print(paste0("# <", k, "> <--: at ", Sys.time()))
     print(paste0("#-----------------------------------------------------------------#"))
     next
-  }else{
+  } else {
   ## 如果数据文件还没有处理过
   ## 则开始运行下面的脚本
     print(paste0("# <", k, "> -->: at ", Sys.time()))
@@ -184,7 +199,7 @@ for(k in 1:nrow(futuresCalendar)){
     ## -------------------------------------------------------------------------
 
     ############################################################################
-    if(nrow(dt) != 0){
+    if (nrow(dt) != 0) {
       source('./R/vnpyData/vnpyData2mysql_02_manipulate_data.R')
       source('./R/vnpyData/vnpyData2mysql_03_mysql_data.R')
       ## -----------------------------------------------------------------------
@@ -192,28 +207,33 @@ for(k in 1:nrow(futuresCalendar)){
         source('./R/vnpyData/vnpyData2mysql_05_info.R')
         )
       ## -----------------------------------------------------------------------
-    }else{##---------- NA Data
+    } else {##---------- NA Data
       if (tempHour %between% c(15,20) | includeHistory) {
         source('./R/vnpyData/vnpyData2mysql_04_NA_data.R')
       }
     }
     ############################################################################
-  }
 
-  print(paste0("#-----------------------------------------------------------------#"))
-  print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!"))
-  print(paste0("#-----------------------------------------------------------------#"))
-
-  if (tempHour %between% c(15,20) & coloSource == "XiFu_From135") {
     print(paste0("#-----------------------------------------------------------------#"))
-    print(paste0("#---------- Fetch MySQL Data into Bar ----------------------------#"))
-    source('./R/FetchMysQL/vnpy_XiFu_From135.R')
-    print(paste0("#---------- Update MainContract Information  ---------------------#"))
-    source('./R/Rconfig/MainContract_00_main.R')
+    print(paste0("# The ",coloSource," Data is already inserted into MySQL Databases!"))
     print(paste0("#-----------------------------------------------------------------#"))
-  }
 
-  print(paste0("# <", k, "> <--: at ", Sys.time()))
+    if ((tempHour %between% c(15,20) | includeHistory) & coloSource == "YunYang1_FromPC") {
+      print(paste0("#-----------------------------------------------------------------#"))
+      print(paste0("#---------- Fetch MySQL Data into Bar ----------------------------#"))
+      source('./R/FetchMysQL/vnpy_coloSource.R')
+
+      print(paste0("#---------- Update MainContract Information  ---------------------#"))
+      source('./R/Rconfig/MainContract_00_main.R')
+      print(paste0("#-----------------------------------------------------------------#"))
+
+      if (logTradingDay == format(Sys.Date(), '%Y%m%d'))
+          system('/home/fl/anaconda2/bin/python /home/fl/myData/python/sendEmail_PnL.py')
+    }
+    ############################################################################
+    print(paste0("# <", k, "> <--: at ", Sys.time()))
+  }
 }
 ################################################################################
 }
+
