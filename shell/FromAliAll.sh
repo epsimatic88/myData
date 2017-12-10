@@ -7,8 +7,6 @@ echo -e "\n---------------------------------------------------------------------
 echo -e ">> $(date +'%Y-%m-%d %H:%M:%S') << FromAliAll.sh"
 echo -e  "--------------------------------------------------------------------------------"
 
-# rsync -vr -e 'sshpass -p "abc@123" ssh' fl@47.93.200.243:/home/fl/myVnpy/vn.data /data/ChinaFuturesTickData/FromAli
-
 for colo in YunYang1 XiFu TianMi1 TianMi3;
 do
     for info in ContractInfo TickData;
