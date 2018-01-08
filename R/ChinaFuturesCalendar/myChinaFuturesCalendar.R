@@ -2,9 +2,11 @@
 ## myChinaFuturesCalendar.R
 ##
 ## 生成中国期货交易日
-## 1. days  :日盘时间
-## 2. nights:夜盘时间
-##
+## 1. days  : 日盘时间
+## 2. nights: 夜盘时间
+## 
+## Authoer  : fl@hicloud-investment.com
+## Date     : 2017-11-01
 ## =============================================================================
 rm(list = ls())
 setwd('/home/fl/myData')
