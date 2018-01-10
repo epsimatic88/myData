@@ -1,139 +1,143 @@
 ################################################################################
-## dce.R
-## 用于下载大商所期货公司持仓排名数据
-##
-## Author: William Fang
-## Date  : 2017-08-21
-################################################################################
-rm(list = ls())
+ROOT_PATH <- '/home/fl/myData'
+DATA_PATH <- './data/oiRank/data'
 
-################################################################################
-setwd("/home/william/Documents/oiRank")
+setwd(ROOT_PATH)
+source('./R/Rconfig/myInit.R')
+library(httr)
 ################################################################################
 
+ChinaFuturesCalendar[, nights := gsub('-', '', nights)]
+ChinaFuturesCalendar[, days := gsub('-', '', days)]
+ChinaFuturesCalendar <- ChinaFuturesCalendar[days <= format(Sys.Date(), '%Y%m%d')]
 
-################################################################################
-source("./R/Rconfig/myInit.R")
-################################################################################
+allYears <- ChinaFuturesCalendar[, unique(substr(days, 1, 4))]
+sapply(allYears, function(i){
+    tempDir <- paste0(DATA_PATH, '/DCE/', i)
+    if (!dir.exists(tempDir)) dir.create(tempDir, recursive = T)
+})
 
-ChinaFuturesCalendar <- fread("./R/ChinaFuturesCalendar.csv") %>% 
-  .[days <= gsub("-","",Sys.Date() - 1)] %>% 
-  .[,.(days)]
+## -----------------------------------------------------------------------------
+url <- "http://www.dce.com.cn/publicweb/quotesdata/memberDealPosiQuotes.html"
+dceProduct <- data.table(productID  = c('a','b','m','y',
+                                        'p','c','cs','jd',
+                                        'fb','bb','l','v',
+                                        'pp','j','jm','i'),
+                         productName = c('豆一','豆二','豆粕','豆油',
+                                         '棕榈油','玉米','玉米淀粉','鸡蛋',
+                                         '纤维板','胶合板','聚乙烯','聚氯乙烯',
+                                         '聚丙烯','焦炭','焦煤','铁矿石')
+                         )
+## -----------------------------------------------------------------------------
 
-calendarYear <- ChinaFuturesCalendar[, unique(substr(days,1,4))]
-##------------------------------------------------------------------------------
-if(Sys.info()['sysname'] == 'Windows'){
-  Sys.setenv("R_ZIPCMD" = "D:/Program Files/Rtools/bin/zip.exe") ## path to zip.exe
+## -----------------------------------------------------------------------------
+## 获取数据内容
+fetchData <- function(instrument) {
+    postData <- list(memberDealPosiQuotes.variety = gsub('\\d','',instrument),
+                    memberDealPosiQuotes.trade_type = "0",
+                    year = dceYear,
+                    month = dceMonth,
+                    day = dceDay,
+                    contract.contract_id = instrument,
+                    contract.variety_id = gsub('\\d','',instrument),
+                    contract = ""
+                    )
+
+    destFile <- paste0(DATA_PATH, '/DCE/', dceYear, '/',tradingDay, '_', instrument, '.csv')
+
+    if (file.exists(destFile)) return(NA)
+
+    if (class(try(r <- POST(url, body = postData))) == 'try-error') return(NA)
+    page <- content(r, 'text')
+    resTable <- page %>% 
+                read_html(encoding = 'utf8') %>% 
+                html_nodes('table') %>% 
+                html_table() %>% 
+                .[[2]] %>% 
+                as.data.table()
+    print(instrument)
+    print(resTable)
+    # return(resTable)
+    if (nrow(resTable) != 0) {
+        fwrite(resTable, file = destFile)
+    }
 }
-##------------------------------------------------------------------------------
-
-################################################################################
-## DCE: 大商所
-## 需要用到 javascript 爬虫
-
-remDr <- remoteDriver(remoteServerAddr ='localhost'
-                      ,port = 4444
-                      ,browserName = 'firefox')
-remDr$getStatus()
-
-################################################################################
+## -----------------------------------------------------------------------------
 
 
-################################################################################
-## 开始下载数据
-## 1.持仓排名
-## 2.仓单日报
-################################################################################
-exchURL <- "http://www.dce.com.cn/publicweb/quotesdata/memberDealPosiQuotes.html"
-#-------------------------------------------------------------------------------
-# 1.持仓排名
-for(i in calendarYear){
-  ## ===========================================================================
-  tempTradingDays <- ChinaFuturesCalendar[substr(days,1,4) == i, .(TradingDay = days)] %>% 
-    .[,":="(year  = substr(TradingDay,1,4),
-            month = substr(TradingDay,5,6),
-            day   = substr(TradingDay,7,8))]
+for (d in 1:nrow(ChinaFuturesCalendar) ){
+## =============================================================================
+    # tradingDay <- ChinaFuturesCalendar[d, gsub('-', '', days)]
+    tradingDay <- ChinaFuturesCalendar[d,days]
+    # tradingDay <- '20180109'
+    dceYear <- substr(tradingDay, 1, 4)
+    dceMonth <- as.character(as.numeric(substr(tradingDay, 5, 6)) - 1)
+    dceDay <- substr(tradingDay, 7, 8)
+    ## -----------------------------------------------------------------------------
 
-  ## ===========================================================================
-  ## 设置路径
-  ## ---------------------------------------------------------------------------
-  tempPath <- "./data/DCE"
-  if (!dir.exists(tempPath)) dir.create(tempPath)
-  setwd(tempPath)
-  if(!dir.exists(i)) dir.create(i)
-  ## ===========================================================================
-  
-  tempPP <- data.table(id = seq(1:16),
-                     conName = c('a','b','m','y','p','c','cs','jd',
-                                 'fb','bb','l','v','pp','j','jm','i')
-                     )
+    # mysql <- mysqlFetch('china_futures_bar')
+    # allInstrumentNo <- dbGetQuery(mysql, paste("
+    #     select distinct InstrumentID
+    #     from minute
+    #     where tradingday = ", tradingDay,
+    #     "and (volume != 0 or closeopeninterest != 0)")) %>% as.data.table() %>%
+    #   .[,":="(productID = gsub("[0-9]","",InstrumentID))] %>%
+    #   merge(.,dceProduct, by = 'productID')
+    # ## ====================================
+    # dbDisconnect(mysql)
+    # ## ====================================
 
-  ## ===========================================================================
-  ## 以下开始循环下载数据
-  ##----------------------------------------------------------------------------
-  for(k in 1:nrow(tempTradingDays)){
-    ############################################################################ 
-    ## 跑两次程序，保证数据下载到
-    if (class(try( source('../../R/dce_02.R', encoding = 'UTF-8', echo=TRUE) )) == 'try-error') {
-      remDr$close()
-      try(
-        source('../../R/dce_02.R', encoding = 'UTF-8', echo=TRUE)
-      )
-    }
-    ############################################################################ 
+    ## -----------------------------------------------------------------------------
+    ## 获取合约代码
+    sapply(dceProduct[,productID], function(product){
+        # product <- 'a'
 
-    ## =========================================================================
-    if (i == '2010') {
-      mysql <- mysqlFetch('FromDC', host = '192.168.1.166')
-    } else {
-      mysql <- mysqlFetch('china_futures_bar', host = '192.168.1.166')
-    }
-    
-    allInstrumentIDNum <- dbGetQuery(mysql, paste("
-                                                  select distinct InstrumentID
-                                                  from minute
-                                                  where tradingday = ",tempTradingDays[k,as.numeric(TradingDay)],
-                                                  "and closeopeninterest != 0")) %>% as.data.table() %>%
-      .[,":="(ContractID = gsub("[0-9]","",InstrumentID))] %>%
-      merge(.,tempPP, by.x = 'ContractID', by.y = 'conName')
-    ## =========================================================================
+        postData <- list(memberDealPosiQuotes.variety = product,
+                        memberDealPosiQuotes.trade_type = "0",
+                        year = dceYear,
+                        month = dceMonth,
+                        day = dceDay,
+                        contract.contract_id = "all",
+                        contract.variety_id = product,
+                        contract = ""
+                        )
 
-    tempPreviousDay <- ChinaFuturesCalendar[days < tempTradingDays[k,TradingDay]][.N]
-    tempCurrFileNo <- list.files(paste0("./",i,"/"), pattern = 
-                                paste0(tempTradingDays[k,TradingDay],".*")) %>% length()
-    if (nrow(tempPreviousDay) != 0) {
-    tempLastFileNo <- list.files(paste0("./",i,"/"), pattern = 
-                                paste0(tempPreviousDay[.N,days],".*")) %>% length()
-    } else {
-      tempLastFileNo <- 0
-    }
+        tryNo <- 0
+        resInstrumentNo <- 12
+        filesNo <- 0
+        # allNo <- ifelse(nrow(allInstrumentNo) == 0, 0,
+        #                allInstrumentNo[productID == product] %>% nrow())
 
-    tryNo <- 0
-    while( ((tempCurrFileNo < nrow(allInstrumentIDNum) * 0.99) | 
-          (tempCurrFileNo < tempLastFileNo * 0.95)) & (tryNo < 20) ){
-      try(
-        source('../../R/dce_02.R', encoding = 'UTF-8', echo=TRUE)
-      )
 
-      tryNo <- tryNo + 1
-      ## updating
-      tempCurrFileNo <- list.files(paste0("./",i,"/"), pattern = 
-                            paste0(tempTradingDays[k,TradingDay],".*")) %>% length()
-    }
-    ## =========================================================================
-    # remDr$quit()
-    ## =========================================================================
-  }
-  
-  ##############################################################################
-  dbDisconnect(mysql)
-  for(mysql_conn in dbListConnections(MySQL()) )
-    dbDisconnect(mysql_conn)
-  ##############################################################################
+        # while (tryNo < 10 & filesNo < max(resInstrumentNo, allNo)) {
+        while (tryNo < 10 & filesNo < resInstrumentNo) {
+            ## ---------------
+            tryNo <- tryNo + 1
+            ## ---------------
+            if (class(try(r <- POST(url, body = postData))) == 'try-error') next
 
-  ##--- 返回上一层目录
-  setwd("../..")
+            page <- content(r, 'text')
+            resInstrument <- page %>% 
+                        read_html(encoding = 'utf8') %>% 
+                        html_nodes('.selBox') %>% 
+                        html_text() %>% 
+                        .[3] %>% 
+                        gsub('\t|\n|\r', '', .) %>%
+                        strsplit(., ' ') %>%
+                        unlist() %>%
+                        .[nchar(.) != 0] %>%
+                        .[!grepl("全部",.)]
+            if (length(resInstrument) == 0) next
+                sapply(resInstrument, try(fetchData))
+
+            ## ---------------------------------------------------------------------
+            resInstrumentNo <- length(resInstrument)
+            filesNo <- list.files(paste0(DATA_PATH, '/DCE/', dceYear, '/'), pattern = 'csv') %>% 
+                        .[grepl(tradingDay, .)] %>% 
+                        .[grepl(product, .)] %>% 
+                        length(.)
+            ## ---------------------------------------------------------------------
+        }
+    })
+## =============================================================================
 }
-
-################################################################################
-################################################################################
