@@ -28,6 +28,18 @@ dceProduct <- data.table(productID  = c('a','b','m','y',
                                          '纤维板','胶合板','聚乙烯','聚氯乙烯',
                                          '聚丙烯','焦炭','焦煤','铁矿石')
                          )
+
+headers = c(
+            "Accept" = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Encoding" = "gzip, deflate",
+            "Accept-Language" = "zh-CN,en-US;q=0.8,zh;q=0.6,en;q=0.4,zh-TW;q=0.2",
+            "Connection" = "keep-alive",
+            "DNT" = "1",
+            "Host" = "www.dce.com.cn",
+            "Referer" = "http://www.dce.com.cn/publicweb/quotesdata/memberDealPosiQuotes.html",
+            "Upgrade-Insecure-Requests" = "1",
+            "User-Agent" = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.113 Safari/537.36"
+            )
 ## -----------------------------------------------------------------------------
 
 ## -----------------------------------------------------------------------------
@@ -47,7 +59,8 @@ fetchData <- function(instrument) {
 
     if (file.exists(destFile)) return(NA)
 
-    if (class(try(r <- POST(url, body = postData))) == 'try-error') return(NA)
+    if (class(try(r <- POST(url, body = postData),
+                            add_headers(headers))) == 'try-error') return(NA)
     page <- content(r, 'text')
     resTable <- page %>% 
                 read_html(encoding = 'utf8') %>% 
@@ -55,8 +68,8 @@ fetchData <- function(instrument) {
                 html_table() %>% 
                 .[[2]] %>% 
                 as.data.table()
-    print(instrument)
-    print(resTable)
+    # print(instrument)
+    # print(resTable)
     # return(resTable)
     if (nrow(resTable) != 0) {
         fwrite(resTable, file = destFile)
@@ -64,8 +77,9 @@ fetchData <- function(instrument) {
 }
 ## -----------------------------------------------------------------------------
 
+cl <- makeCluster(8, type="FORK")
 
-for (d in 1:nrow(ChinaFuturesCalendar) ){
+parSapply(cl, 1:nrow(ChinaFuturesCalendar), function(d){
 ## =============================================================================
     # tradingDay <- ChinaFuturesCalendar[d, gsub('-', '', days)]
     tradingDay <- ChinaFuturesCalendar[d,days]
@@ -74,18 +88,6 @@ for (d in 1:nrow(ChinaFuturesCalendar) ){
     dceMonth <- as.character(as.numeric(substr(tradingDay, 5, 6)) - 1)
     dceDay <- substr(tradingDay, 7, 8)
     ## -----------------------------------------------------------------------------
-
-    # mysql <- mysqlFetch('china_futures_bar')
-    # allInstrumentNo <- dbGetQuery(mysql, paste("
-    #     select distinct InstrumentID
-    #     from minute
-    #     where tradingday = ", tradingDay,
-    #     "and (volume != 0 or closeopeninterest != 0)")) %>% as.data.table() %>%
-    #   .[,":="(productID = gsub("[0-9]","",InstrumentID))] %>%
-    #   merge(.,dceProduct, by = 'productID')
-    # ## ====================================
-    # dbDisconnect(mysql)
-    # ## ====================================
 
     ## -----------------------------------------------------------------------------
     ## 获取合约代码
@@ -105,16 +107,13 @@ for (d in 1:nrow(ChinaFuturesCalendar) ){
         tryNo <- 0
         resInstrumentNo <- 12
         filesNo <- 0
-        # allNo <- ifelse(nrow(allInstrumentNo) == 0, 0,
-        #                allInstrumentNo[productID == product] %>% nrow())
 
-
-        # while (tryNo < 10 & filesNo < max(resInstrumentNo, allNo)) {
-        while (tryNo < 10 & filesNo < resInstrumentNo) {
+        while (tryNo < 3 & filesNo < resInstrumentNo) {
             ## ---------------
             tryNo <- tryNo + 1
             ## ---------------
-            if (class(try(r <- POST(url, body = postData))) == 'try-error') next
+            if (class(try(r <- POST(url, body = postData,
+                                    add_headers(headers)))) == 'try-error') next
 
             page <- content(r, 'text')
             resInstrument <- page %>% 
@@ -128,11 +127,15 @@ for (d in 1:nrow(ChinaFuturesCalendar) ){
                         .[nchar(.) != 0] %>%
                         .[!grepl("全部",.)]
             if (length(resInstrument) == 0) next
-                sapply(resInstrument, try(fetchData))
+            
+            sapply(resInstrument, function(instrument) {
+                try(fetchData(instrument))
+            })
 
             ## ---------------------------------------------------------------------
             resInstrumentNo <- length(resInstrument)
-            filesNo <- list.files(paste0(DATA_PATH, '/DCE/', dceYear, '/'), pattern = 'csv') %>% 
+            filesNo <- list.files(paste0(DATA_PATH, '/DCE/', dceYear, '/'), 
+                                  pattern = 'csv') %>% 
                         .[grepl(tradingDay, .)] %>% 
                         .[grepl(product, .)] %>% 
                         length(.)
@@ -140,4 +143,6 @@ for (d in 1:nrow(ChinaFuturesCalendar) ){
         }
     })
 ## =============================================================================
-}
+})
+
+stopCluster(cl)
