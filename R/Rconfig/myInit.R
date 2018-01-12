@@ -9,7 +9,8 @@
 ## =============================================================================
 pkgs <- c("tidyverse", "data.table", "parallel",
           "RMySQL", "stringr", "bit64", "Rcpp",
-          "lubridate","zoo",'beepr','plotly','rowr')
+          "lubridate","zoo",'plotly','rowr',
+          'rvest','magrittr')
 ##------------------------------------------------------------------------------
 if(length(pkgs[!pkgs %in% installed.packages()]) != 0){
   sapply(pkgs[!pkgs %in% installed.packages()], install.packages)
@@ -23,6 +24,15 @@ options(digits = 8, digits.secs = 6, width　=　120,
 ##------------------------------------------------------------------------------
 ## =============================================================================
 
+## =============================================================================
+suppFunction <- function(x) {
+  suppressWarnings({
+    suppressMessages({
+      x
+    })
+  })
+}
+
 ################################################################################
 ## MySQL
 ## 链接到 MySQL 数据库，以获取数据
@@ -35,7 +45,8 @@ for( conns in dbListConnections(MySQL()) ){
 
 mysql_user <- 'fl'
 mysql_pwd  <- 'abc@123'
-mysql_host <- "127.0.0.1"
+# mysql_host <- "127.0.0.1"
+mysql_host <- "192.168.1.166"
 mysql_port <- 3306
 
 #---------------------------------------------------
@@ -43,11 +54,68 @@ mysql_port <- 3306
 # 函数，主要输入为
 # database
 #---------------------------------------------------
-mysqlFetch <- function(x, host = mysql_host){
+mysqlFetch <- function(db,
+                       host = mysql_host,
+                       port = mysql_port,
+                       user = mysql_user,
+                       pwd  = mysql_pwd){
   dbConnect(MySQL(),
-    dbname   = as.character(x),
-    user     = mysql_user,
-    password = mysql_pwd,
+    dbname   = as.character(db),
     host     = host,
-    port     = mysql_port)
+    port     = port,
+    user     = user,
+    password = pwd)
 }
+
+mysqlQuery <- function(db, query,
+                       host = mysql_host,
+                       port = mysql_port,
+                       user = mysql_user,
+                       pwd  = mysql_pwd) {
+  mysql <- mysqlFetch(db)
+  dt <- suppFunction(dbGetQuery(mysql, query)) %>% as.data.table()
+  dbDisconnect(mysql) 
+  return(dt)
+}
+
+
+
+
+## =============================================================================
+## 从 MySQL 数据库提取数据
+## =============================================================================
+fetchData <- function(db, tbl, start, end) {
+    mysql <- mysqlFetch(db)
+    query <- paste("
+    SELECT TradingDay, Sector,
+           InstrumentID as id,
+           OpenPrice as open,
+           HighPrice as high,
+           LowPrice as low,
+           ClosePrice as close,
+           Volume as volume,
+           Turnover as turnover,
+           SettlementPrice as stl",
+    "FROM", tbl,
+    "WHERE TradingDay BETWEEN", start,
+    "AND", end)
+
+    if (grepl('minute',tbl)) query <- gsub("Sector", 'Minute', query)
+
+    tempRes <- dbGetQuery(mysql, query) %>% as.data.table() %>%
+                .[order(TradingDay)]
+    return(tempRes)
+}
+
+mysql <- mysqlFetch('dev')
+ChinaFuturesCalendar <- dbGetQuery(mysql, "
+            SELECT * FROM ChinaFuturesCalendar"
+) %>% as.data.table()
+
+if (as.numeric(format(Sys.time(),'%H')) < 17){
+  currTradingDay <- ChinaFuturesCalendar[days <= format(Sys.Date(),'%Y-%m-%d')][.N]
+}else{
+  currTradingDay <- ChinaFuturesCalendar[days > format(Sys.Date(),'%Y-%m-%d')][1]
+}
+lastTradingDay <- ChinaFuturesCalendar[days < currTradingDay[1,days]][.N]
+
