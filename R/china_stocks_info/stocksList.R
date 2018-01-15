@@ -77,6 +77,9 @@ dt <- dt[, .(stockID = COMPANY_CODE, stockName = COMPANY_ABBR,
 dt[stockName_B == '-', ":="(
   stockID_B = NA, stockName_B = NA)] 
 
+## 600996 上交所有问题,没有更新 IPO 上市时间
+dt[stockID == '600996', listingDate := '2016-12-26']
+
 mysql <- mysqlFetch('china_stocks_info')
 dbSendQuery(mysql, "delete from stocks_list where exchID = 'sh'")
 dbWriteTable(mysql, 'stocks_list', dt, row.names = F, append = T)
