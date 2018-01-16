@@ -101,7 +101,7 @@ dt <- lapply(dataFiles, function(x){
 dt <- dt[, .(日期, 股票代码, 名称,
              开盘价, 最高价, 最低价, 收盘价,
              成交量, 成交金额)]
-colnames(dt) <- c('TradignDay','indexID','indexName',
+colnames(dt) <- c('TradingDay','indexID','indexName',
                   'open','high','low','close',
                   'volume','turnover')
 ## =============================================================================
