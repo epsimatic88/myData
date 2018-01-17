@@ -13,19 +13,12 @@
 ################################################################################
 ## STEP 0: 初始化，载入包，设定初始条件
 ################################################################################
-rm(list = ls())
+# rm(list = ls())
 
 setwd('/home/fl/myData/')
 suppressMessages({
   source('./R/Rconfig/myInit.R')
 })
-
-## =============================================================================
-ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar.csv",
-                              colClasses = list(character = c("nights","days")))
-currTradingDay <- ChinaFuturesCalendar[nights <= format(Sys.Date(), '%Y%m%d')][.N]
-lastTradingDay <- ChinaFuturesCalendar[nights < format(Sys.Date(), '%Y%m%d')][.N]
-## =============================================================================
 
 
 ## =============================================================================
@@ -34,20 +27,25 @@ fetchSignal <- function(fromDB, toDB) {
   # fromDB <- 'TianMi1'
   # toDB   <- 'FL_SimNow'
 
-  mysql <- mysqlFetch(fromDB, host = '192.168.1.166')
-  fromSignal <- dbGetQuery(mysql, "select * from signal") %>% 
-    as.data.table() %>% 
-    .[, TradingDay := gsub('-','',TradingDay)] %>% 
-    .[TradingDay == currTradingDay[1,nights]]
+  mysql <- mysqlFetch(fromDB)
+  fromSignal <- dbGetQuery(mysql, "select * from tradingSignal") %>%
+    as.data.table() %>%
+    .[, TradingDay := gsub('-','',TradingDay)] %>%
+    .[TradingDay == gsub('-','',currTradingDay[1,nights])]
 
   if (nrow(fromSignal) == 0) return(NULL)
 
-  mysql <- mysqlFetch(toDB, host = '192.168.1.166')
-  dbSendQuery(mysql, "truncate table signal")
-  dbWriteTable(mysql, 'signal',
+  mysql <- mysqlFetch(toDB)
+  dbSendQuery(mysql, "truncate table tradingSignal")
+  dbWriteTable(mysql, 'tradingSignal',
                fromSignal, row.names = FALSE, append = TRUE)
 }
 ## =============================================================================
 
-fetchSignal(fromDB = 'TianMi1', toDB = 'FL_SimNow')
-fetchSignal(fromDB = 'YunYang1', toDB = 'YY_SimNow')
+# fetchSignal(fromDB = 'TianMi1', toDB = 'LXO_SimNow')
+fetchSignal(fromDB = 'TianMi1', toDB = 'SimNow_LXO')
+# fetchSignal(fromDB = 'YunYang1', toDB = 'YY_SimNow')
+# fetchSignal(fromDB = 'YunYang1', toDB = 'FL_SimNow')
+fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_FL')
+fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_YY')
+
