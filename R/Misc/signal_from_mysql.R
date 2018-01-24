@@ -27,7 +27,7 @@ fetchSignal <- function(fromDB, toDB) {
   # fromDB <- 'TianMi1'
   # toDB   <- 'FL_SimNow'
 
-  mysql <- mysqlFetch(fromDB)
+  mysql <- mysqlFetch(fromDB, host = '192.168.1.166')
   fromSignal <- dbGetQuery(mysql, "select * from tradingSignal") %>%
     as.data.table() %>%
     .[, TradingDay := gsub('-','',TradingDay)] %>%
@@ -35,17 +35,13 @@ fetchSignal <- function(fromDB, toDB) {
 
   if (nrow(fromSignal) == 0) return(NULL)
 
-  mysql <- mysqlFetch(toDB)
+  mysql <- mysqlFetch(toDB, host = '192.168.1.135')
   dbSendQuery(mysql, "truncate table tradingSignal")
   dbWriteTable(mysql, 'tradingSignal',
                fromSignal, row.names = FALSE, append = TRUE)
 }
 ## =============================================================================
 
-# fetchSignal(fromDB = 'TianMi1', toDB = 'LXO_SimNow')
 fetchSignal(fromDB = 'TianMi1', toDB = 'SimNow_LXO')
-# fetchSignal(fromDB = 'YunYang1', toDB = 'YY_SimNow')
-# fetchSignal(fromDB = 'YunYang1', toDB = 'FL_SimNow')
 fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_FL')
 fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_YY')
-
