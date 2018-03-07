@@ -75,3 +75,23 @@ for (stock in allStocks$stockID) {
 
 }
 ## =============================================================================
+
+## =============================================================================
+rm(dt)
+allFiles <- SAVE_PATH %>% 
+    list.files(., pattern = '.csv', full.names = T)
+
+dt <- lapply(allFiles, function(f){
+    fread(f, colClass = c('character'))
+}) %>% rbindlist()
+
+colnames(dt) <- c('TradingDay','stockID',
+                  'zdtType','close','fluctuation','amplitude',
+                  'zdtForce','zdtText','isLhb')
+
+mysql <- mysqlFetch('china_stocks')
+dbSendQuery(mysql, 'truncate table limit_from_jrj')
+dbWriteTable(mysql, 'limit_from_jrj',
+             dt, row.names = F, append = T)
+dbDisconnect(mysql)
+## =============================================================================
