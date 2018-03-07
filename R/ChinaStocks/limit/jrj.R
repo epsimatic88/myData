@@ -48,13 +48,14 @@ fetch_limit_data_from_JRJ <- function(stockID) {
             webData <- infoData$data %>% 
                 as.data.table()
         }
-    }) %>% rbindlist() %>% .[order(date)]
+    }) %>% rbindlist()
 
-    if (nrow(dt) == 0) return(data.table)
+    if (nrow(dt) == 0) return(data.table())
 
     dt[, stockID := stockID]
     setcolorder(dt, c('date', 'stockID', 
                       colnames(dt)[2:(ncol(dt)-1)]))
+    dt <- dt[order(date)]
     return(dt)
 }
 
