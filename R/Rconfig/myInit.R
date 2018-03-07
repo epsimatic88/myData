@@ -9,7 +9,7 @@
 ## =============================================================================
 pkgs <- c("tidyverse", "data.table", "parallel",
           "RMySQL", "stringr", "bit64", "Rcpp",
-          "lubridate","zoo",'plotly','rowr',
+          "lubridate","zoo",'rowr',
           'rvest','magrittr')
 ##------------------------------------------------------------------------------
 if(length(pkgs[!pkgs %in% installed.packages()]) != 0){
@@ -74,11 +74,32 @@ mysqlQuery <- function(db, query,
                        pwd  = mysql_pwd) {
   mysql <- mysqlFetch(db)
   dt <- suppFunction(dbGetQuery(mysql, query)) %>% as.data.table()
-  dbDisconnect(mysql) 
+  dbDisconnect(mysql)
   return(dt)
 }
 
 
+mysqlWrite <- function(db, tbl, 
+                       dt, isTruncated = FALSE,
+                       host = mysql_host,
+                       port = mysql_port,
+                       user = mysql_user,
+                       pwd  = mysql_pwd) {
+  mysql <- mysqlFetch(db)
+
+  if (isTruncated) {
+    suppFunction(
+      dbSendQuery(mysql, paste('truncate table', tbl))
+    )
+  }
+
+  suppFunction(
+    dbWriteTable(mysql, tbl,
+                 dt, row.names = F, append = T)
+  )
+
+  dbDisconnect(mysql)
+}
 
 
 ## =============================================================================
@@ -119,3 +140,7 @@ if (as.numeric(format(Sys.time(),'%H')) < 17){
 }
 lastTradingDay <- ChinaFuturesCalendar[days < currTradingDay[1,days]][.N]
 
+source('/home/fl/myData/R/Rconfig/myFunctions.R')
+
+ChinaStocksCalendar <- mysqlQuery(db = 'dev',
+                                  query = 'select * from ChinaStocksCalendar')
