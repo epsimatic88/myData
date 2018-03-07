@@ -86,7 +86,7 @@ dt <- lapply(allFiles, function(f){
 }) %>% rbindlist()
 
 colnames(dt) <- c('TradingDay','stockID',
-                  'zdtType','close','fluctuation','amplitude',
+                  'zdtType','close','pchg','amplitude',
                   'zdtForce','zdtText','isLhb')
 
 mysql <- mysqlFetch('china_stocks')
