@@ -1,11 +1,12 @@
 ## =============================================================================
 ## sina_bAdj.R
 ##
-## 用于获取 新浪财经 后复权因子
+## 用于获取 新浪财经 股票历史交易明细
 ## http://vip.stock.finance.sina.com.cn/corp/go.php/vMS_FuQuanMarketHistory/stockid/600008.phtml?year=2017&jidu=1
 ##
-## Author : fl@hicloud-investment.com
-## Date   : 2018-10-10
+## Author   : fl@hicloud-investment.com
+## Date     : 2018-01-10
+## Modified : 2018-03-07
 ## =============================================================================
 
 ## =============================================================================
@@ -56,7 +57,7 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
   # print(paste(tradingDay, ':==>', allStocks[i, stockID]))
   if (nrow(ipTables) == 0) {
       ipTables <- fetchIp(2)
-      Sys.sleep(3)
+      Sys.sleep(1)
   }
   ipTables <- ipTables[tryNo < 5]
   if (!ipUseful) ip <- ipTables[sample(1:nrow(ipTables),1)]
@@ -67,7 +68,7 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
 
     if (nrow(ipTables) == 0) {
         ipTables <- fetchIp(2)
-        Sys.sleep(3)
+        Sys.sleep(1)
     }
     # i <- 1
     tryNo <- 0
@@ -90,17 +91,17 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
           r <- GET(url, query = list(date = tradingDay,
                                      symbol = allStocks[i, paste0(exchID, stockID)]),
                         use_proxy(ip[1, url], ip[1, port]),
-                        timeout(5))
+                        timeout(3))
           )) == 'try-error') {
         ipTables[url == ip[1,url], tryNo := tryNo + 1]
         # ## -----------------------------------------------------------------------
         temp <- ipTables[url == ip[1,url]]
         if (nrow(temp) != 0) {
-            ipTables <- ipTables[tryNo < 5]
+            ipTables <- ipTables[tryNo < 10]
         }
         if (nrow(ipTables) == 0) {
-            ipTables <- fetchIp(5)
-            Sys.sleep(5)
+            ipTables <- fetchIp(2)
+            Sys.sleep(1)
         }
         ip <- ipTables[sample(1:nrow(ipTables),1)]
         ipUseful <- FALSE
