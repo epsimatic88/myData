@@ -154,3 +154,32 @@ ON china_stocks.rzrq_from_eastmoney
 
 
 
+
+################################################################################
+## china_stocks.report_from_jrj
+################################################################################
+CREATE TABLE  china_stocks.report_from_jrj(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    #------------------------------------------------------
+    reportClass     CHAR(30),                           ## 研报类型
+    reportClassID   CHAR(10),                           ## 研报类型ID
+    title           TEXT,                               ## 标题
+    author          CHAR(100),                          ## 作者
+    brokerName      CHAR(100),                          ## 券商
+    brokerID        CHAR(30),                           ## 券商ID
+    industryClass   CHAR(30),                           ## 行业类型
+    industryID      CHAR(30),                           ## 行业类型ID
+    reportID        CHAR(30) NOT NULL,                  ## 研报ID,网页标识
+    pageNo          INT,                                ## 页数
+    ref             TEXT,                               ## 研报连接     
+    #-----------------------------------------------------
+    PRIMARY KEY (TradingDay, reportID)                  ## 主键唯一，重复不可输入
+    );
+
+##----------- INDEX --------------------------------------------------------- ##
+CREATE INDEX index_report_from_jrj
+ON china_stocks.report_from_jrj
+(TradingDay, reportID);  
+## -------------------------------------------------------------------------- ## 
+
+
