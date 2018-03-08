@@ -11,7 +11,7 @@ CREATE DATABASE `china_stocks` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_c
 ################################################################################
 CREATE TABLE  china_stocks.daily_from_sina(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(30)         NOT NULL,          ## 股票代码: 
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码: 
     #------------------------------------------------------
     open            DECIMAL(15,3),                      ## 开盘价
     high            DECIMAL(15,3),                      ## 开盘价
@@ -37,8 +37,8 @@ ON china_stocks.daily_from_sina
 ################################################################################
 CREATE TABLE  china_stocks.daily_from_163(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(30)         NOT NULL,          ## 股票代码: 
-    stockName       CHAR(30)         NOT NULL,          ## 股票名称: 
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码: 
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称: 
     #------------------------------------------------------
     open            DECIMAL(15,3),                      ## 开盘价
     high            DECIMAL(15,3),                      ## 开盘价
@@ -69,18 +69,18 @@ ON china_stocks.daily_from_163
 ################################################################################
 CREATE TABLE  china_stocks.limit_from_jrj(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(30)         NOT NULL,          ## 股票代码 
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码 
     ## -------------------------------------------------------------------------
-    zdtType         CHAR(10)         NOT NULL,          ## 涨跌停类型
+    zdtType         VARCHAR(10)      NOT NULL,          ## 涨跌停类型
                                                         ## 1：涨停
                                                         ## 2：跌停
-    zdtText         CHAR(50),                           ## 涨跌停类型
+    zdtText         VARCHAR(50),                        ## 涨跌停类型
     ## -------------------------------------------------------------------------
     close           DECIMAL(15,3),                      ## 开盘价
     pchg            DECIMAL(10,3),                      ## 涨跌幅
     amplitude       DECIMAL(10,3),                      ## 振幅
     zdtForce        DECIMAL(10,3),                      ## 振幅
-    isLhb           CHAR(10),                           ## 是否登录龙虎榜
+    isLhb           VARCHAR(10),                        ## 是否登录龙虎榜
     ## -------------------------------------------------------------------------
     PRIMARY KEY (TradingDay, stockID)                   ## 主键唯一，重复不可输入
     );
@@ -98,8 +98,8 @@ ON china_stocks.limit_from_jrj
 ################################################################################
 CREATE TABLE  china_stocks.rzrq_from_sina(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(30)         NOT NULL,          ## 股票代码
-    stockName       CHAR(30)         NOT NULL,          ## 股票名称
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     rzye            DECIMAL(30,3),                      ## 融资余额(元)
     rzmre           DECIMAL(30,3),                      ## 融资买入额(元)
@@ -129,8 +129,8 @@ ON china_stocks.rzrq_from_sina
 ################################################################################
 CREATE TABLE  china_stocks.rzrq_from_eastmoney(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(30)         NOT NULL,          ## 股票代码
-    stockName       CHAR(30)         NOT NULL,          ## 股票名称
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     rzye            DECIMAL(30,3),                      ## 融资余额(元)
     rzmre           DECIMAL(30,3),                      ## 融资买入额(元)
@@ -153,24 +153,22 @@ ON china_stocks.rzrq_from_eastmoney
 ## -------------------------------------------------------------------------- ## 
 
 
-
-
 ################################################################################
 ## china_stocks.report_from_jrj
 ################################################################################
 CREATE TABLE  china_stocks.report_from_jrj(
     TradingDay      DATE             NOT NULL,          ## 交易日期
     #------------------------------------------------------
-    reportClass     CHAR(30),                           ## 研报类型
-    reportClassID   CHAR(10),                           ## 研报类型ID
+    reportClass     VARCHAR(30),                        ## 研报类型
+    reportClassID   VARCHAR(10),                        ## 研报类型ID
     title           TEXT,                               ## 标题
-    author          CHAR(100),                          ## 作者
-    brokerName      CHAR(100),                          ## 券商
-    brokerID        CHAR(30),                           ## 券商ID
-    industryClass   CHAR(30),                           ## 行业类型
-    industryID      CHAR(30),                           ## 行业类型ID
-    reportID        CHAR(30) NOT NULL,                  ## 研报ID,网页标识
-    pageNo          INT,                                ## 页数
+    author          VARCHAR(100),                       ## 作者
+    brokerName      VARCHAR(100),                       ## 券商
+    brokerID        VARCHAR(30),                        ## 券商ID
+    industryClass   VARCHAR(30),                        ## 行业类型
+    industryID      VARCHAR(30),                        ## 行业类型ID
+    reportID        VARCHAR(30) NOT NULL,               ## 研报ID,网页标识
+    pageNo          SMALLINT,                           ## 页数
     ref             TEXT,                               ## 研报连接     
     #-----------------------------------------------------
     PRIMARY KEY (TradingDay, reportID)                  ## 主键唯一，重复不可输入
