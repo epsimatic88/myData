@@ -56,7 +56,7 @@ totalPages <- round(totalPapers/20) + 1
 
 
 ## =============================================================================
-dt <- lapply(1:100, function(i){  ## totalPages
+dt <- lapply(1:2000, function(i){  ## totalPages
   # print(i)
     payload <- list(
         vname        = "yanbaolist",
@@ -112,9 +112,11 @@ dt <- lapply(1:100, function(i){  ## totalPages
 ## 主要是读取网页信息
 ## 然后获取研报的链接
 ## ---------------
-fetch_report_from_jrt <- function(x) {
-    url <- paste0('http://istock.jrj.com.cn/article,yanbao,', x, '.html')
-    link <- url %>%
+fetch_report_from_jrt <- function(reportID) {
+    url <- paste0('http://istock.jrj.com.cn/article,yanbao,', reportID, '.html')
+    r <- GET(url)
+    p <- content(r, 'text')
+    link <- p %>%
         read_html() %>%
         html_nodes('#replayContent a') %>%
         html_attr('href') %>%
@@ -173,24 +175,22 @@ for (i in 1:nrow(dt)) {
       if (class(try(
           download(l, destfile = destFile, mode = 'wb')
         )) == 'try-error') next
-      
-      ## ------------------------------------------
-      ## 设置文件相对路径,方便以后查找
-      ## 识别文件页数,这里我只处理了 pdf 文件
-      ## ------------------------------
-      dt[i, ref := paste0('/', TradingDay, '/', tempFile)]
-      if (tempFileType == '.pdf') {
-        pdfInfo <- pdftools::pdf_info(destFile)
-        dt[i, pageNo := pdfInfo$page]
-      }
-      ## ------------------------------------------
-
-      Sys.sleep(.1)
+        Sys.sleep(1)
     } else {
         print("研报已经下载.")
     }
     ## --------------------------------------------
 
+    ## ------------------------------------------
+    ## 设置文件相对路径,方便以后查找
+    ## 识别文件页数,这里我只处理了 pdf 文件
+    ## ------------------------------
+    dt[i, ref := paste0('/', TradingDay, '/', tempFile)]
+    if (tempFileType == '.pdf') {
+      pdfInfo <- pdftools::pdf_info(destFile)
+      dt[i, pageNo := pdfInfo$page]
+    }
+    ## ------------------------------------------
 }
 
 ## =============================================================================
