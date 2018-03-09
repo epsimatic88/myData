@@ -146,6 +146,60 @@ CREATE TABLE  china_stocks.rzrq_from_eastmoney(
     PRIMARY KEY (TradingDay, stockID)                   ## 主键唯一，重复不可输入
     );
 
+
+
+
+################################################################################
+## china_stocks.dzjy_from_exch
+################################################################################
+CREATE TABLE  china_stocks.dzjy_from_exch(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
+    #------------------------------------------------------
+    price           DECIMAL(15,3),                      ## 成交价格：元
+    volume          BIGINT,                             ## 成交数量：股
+    turnover        DECIMAL(30,3),                      ## 成交金额：源
+    #-----------------------------------------------------
+    DeptBuy         VARCHAR(100),                       ## 买入营业部
+    DeptSell        VARCHAR(100)                       ## 卖出营业部
+    #-----------------------------------------------------
+    );
+
+##----------- INDEX --------------------------------------------------------- ##
+-- CREATE INDEX index_dzjy_from_exch
+-- ON china_stocks.dzjy_from_exch
+-- (TradingDay, stockID);  
+## -------------------------------------------------------------------------- ## 
+
+
+################################################################################
+## china_stocks.dzjy_from_exch
+################################################################################
+CREATE TABLE  china_stocks.dzjy_from_sina(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
+    #------------------------------------------------------
+    price           DECIMAL(15,3),                      ## 成交价格：元
+    volume          BIGINT,                             ## 成交数量：股
+    turnover        DECIMAL(30,3),                      ## 成交金额：源
+    #-----------------------------------------------------
+    DeptBuy         VARCHAR(100),                       ## 买入营业部
+    DeptSell        VARCHAR(100)                        ## 卖出营业部
+    #-----------------------------------------------------
+    );
+
+##----------- INDEX --------------------------------------------------------- ##
+-- CREATE INDEX index_dzjy_from_sina
+-- ON china_stocks.dzjy_from_sina
+-- (TradingDay, stockID);  
+## -------------------------------------------------------------------------- ## 
+
+
+
+
+
 ##----------- INDEX --------------------------------------------------------- ##
 CREATE INDEX index_rzrq_from_eastmoney
 ON china_stocks.rzrq_from_eastmoney
