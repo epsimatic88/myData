@@ -85,8 +85,8 @@ setcolorder(dt, c('tradedate', 'stockid','abbrname',
                   'tradeprice','tradeamount','tradeqty',
                   'branchbuy','branchsell','ifZc'))
 
-tempFile <- paste(SAVE_PATH, 'sse.csv', sep = '/')
-fwrite(dt, tempFile)
+destFile <- paste(SAVE_PATH, 'sse.csv', sep = '/')
+fwrite(dt, destFile)
 ## =============================================================================
 
 
@@ -94,92 +94,117 @@ fwrite(dt, tempFile)
 ## SZSE
 ## 深交所大宗交易统计数据从  开始正式公布
 ## ---
-url <- "http://www.szse.cn/szseWeb/FrontController.szse"
 
-## 搜索页面
-payload_search <- list(
-    ACTIONID      = '7'
-    # ,AJAX          = 'AJAX-TRUE'
-    ,CATALOGID     = '1932_phqzzqdzjy'
-    ,TABKEY        = 'tab1'
-    ,REPORT_ACTION = 'search'
-    ,txtStart      = '2000-01-01'
-    ,txtEnd        = Sys.Date()
-    )
-r <- GET(url, query = payload_search)
-p <- content(r, 'text')
-info <- p %>% 
-    read_html() %>% 
-    html_nodes(xpath = "//*[contains(text(),'当前第')]") %>% 
-    html_text()
-pageNo <- unlist(strsplit(info, ' ')) %>% 
-    grep('共',., value = T) %>% 
-    gsub('\\D', '', .) %>% 
-    as.numeric()
 
-tbls <- lapply(1:pageNo, function(i){
-    payload_tbl <- list(
-        ACTIONID        = '7'
-        # ,AJAX            = 'AJAX-TRUE'
-        ,CATALOGID       = '1932_phqzzqdzjy'
-        ,TABKEY          = 'tab1'
-        ,txtStart        = '2000-01-01'
-        ,txtEnd          = Sys.Date()
-        ,tab1PAGENO      = as.character(i)  ## 第几页
-        # ,tab1PAGECOUNT   = '6'
-        # ,tab1RECORDCOUNT = '128'
-        # ,REPORT_ACTION   = 'navigate'
-        )
+## =============================================================================
+## 以下这段代码是用于获取各个股票分页的具体数据
+# 现在深交所提供了 excel 的汇总表格
+# 可以不用这段代码了
+# 但是可以留着以后备用
+# -------------------------------------
 
-    r <- GET(url, query = payload_tbl)
-    p <- content(r, 'text')
-    if (grepl("没有找到符合条件的数据", p)) {
-        res <- data.table()
-    } else {
-        res <- p %>% 
-            read_html() %>% 
-            html_nodes('#REPORTID_tab1') %>% 
-            html_table(fill = T) %>% 
-            .[[1]] %>% 
-            as.data.table() %>% 
-            .[, 证券代码 := sprintf('%06d', 证券代码)]
-    }
+# url <- "http://www.szse.cn/szseWeb/FrontController.szse"
+# ## 搜索页面
+# payload_search <- list(
+#     ACTIONID      = '7'
+#     # ,AJAX          = 'AJAX-TRUE'
+#     ,CATALOGID     = '1932_phqzzqdzjy'
+#     ,TABKEY        = 'tab1'
+#     ,REPORT_ACTION = 'search'
+#     ,txtStart      = '2000-01-01'
+#     ,txtEnd        = Sys.Date()
+#     )
+# r <- GET(url, query = payload_search)
+# p <- content(r, 'text')
+# info <- p %>% 
+#     read_html() %>% 
+#     html_nodes(xpath = "//*[contains(text(),'当前第')]") %>% 
+#     html_text()
+# pageNo <- unlist(strsplit(info, ' ')) %>% 
+#     grep('共',., value = T) %>% 
+#     gsub('\\D', '', .) %>% 
+#     as.numeric()
 
-    return(res)
-}) %>% rbindlist()
+# tbls <- lapply(1:pageNo, function(i){
+#     payload_tbl <- list(
+#         ACTIONID        = '7'
+#         # ,AJAX            = 'AJAX-TRUE'
+#         ,CATALOGID       = '1932_phqzzqdzjy'
+#         ,TABKEY          = 'tab1'
+#         ,txtStart        = '2000-01-01'
+#         ,txtEnd          = Sys.Date()
+#         ,tab1PAGENO      = as.character(i)  ## 第几页
+#         # ,tab1PAGECOUNT   = '6'
+#         # ,tab1RECORDCOUNT = '128'
+#         # ,REPORT_ACTION   = 'navigate'
+#         )
 
-dt <- lapply(1:nrow(tbls), function(i){
-    payload_data <- list(
-        ACTIONID = '7'
-        ,SOURCECATALOGID = '1932_phqzzqdzjy'
-        ,CATALOGID = '1932_dzjyhz'
-        ,TABKEY = 'tab1'
-        ,DQRQ = tbls[i, 当前日期]
-        ,ZQDM = tbls[i, 证券代码]
-        ,JYLX = '000'
-        )
-    r <- GET(url, query = payload_data)
-    p <- content(r, 'text')
-    res <- p %>% 
-        read_html() %>% 
-        html_nodes('#REPORTID_tab2') %>% 
-        html_table(fill = T) %>% 
-        .[[1]] %>% 
-        as.data.table()
-    colnames(res) <- c('direction','DeptName','buyAmount','sellAmount')
-    res[, ":="(
-            buyAmount = gsub(',', '', buyAmount),
-            sellAmount = gsub(',', '', sellAmount),
-            TradingDay = tbls[i, 当前日期], 
-            stockID = tbls[i, 证券代码],
-            stockName = tbls[i, 证券简称]
-            )]
-    setcolorder(res, c('TradingDay', 'stockID', 'stockName',
-                       colnames(res)[1:(ncol(res) - 3)]))
-    return(res)
-}) %>% rbindlist()
+#     r <- GET(url, query = payload_tbl)
+#     p <- content(r, 'text')
+#     if (grepl("没有找到符合条件的数据", p)) {
+#         res <- data.table()
+#     } else {
+#         res <- p %>% 
+#             read_html() %>% 
+#             html_nodes('#REPORTID_tab1') %>% 
+#             html_table(fill = T) %>% 
+#             .[[1]] %>% 
+#             as.data.table() %>% 
+#             .[, 证券代码 := sprintf('%06d', 证券代码)]
+#     }
 
-tempFile <- paste(SAVE_PATH, 'szse.csv', sep = '/')
-fwrite(dt, tempFile)
+#     return(res)
+# }) %>% rbindlist()
+
+# dt <- lapply(1:nrow(tbls), function(i){
+#     payload_data <- list(
+#         ACTIONID = '7'
+#         ,SOURCECATALOGID = '1932_phqzzqdzjy'
+#         ,CATALOGID = '1932_dzjyhz'
+#         ,TABKEY = 'tab1'
+#         ,DQRQ = tbls[i, 当前日期]
+#         ,ZQDM = tbls[i, 证券代码]
+#         ,JYLX = '000'
+#         )
+#     r <- GET(url, query = payload_data)
+#     p <- content(r, 'text')
+#     res <- p %>% 
+#         read_html() %>% 
+#         html_nodes('#REPORTID_tab2') %>% 
+#         html_table(fill = T) %>% 
+#         .[[1]] %>% 
+#         as.data.table()
+#     colnames(res) <- c('direction','DeptName','buyAmount','sellAmount')
+#     res[, ":="(
+#             buyAmount = gsub(',', '', buyAmount),
+#             sellAmount = gsub(',', '', sellAmount),
+#             TradingDay = tbls[i, 当前日期], 
+#             stockID = tbls[i, 证券代码],
+#             stockName = tbls[i, 证券简称]
+#             )]
+#     setcolorder(res, c('TradingDay', 'stockID', 'stockName',
+#                        colnames(res)[1:(ncol(res) - 3)]))
+#     return(res)
+# }) %>% rbindlist()
+
+# destFile <- paste(SAVE_PATH, 'szse.csv', sep = '/')
+# fwrite(dt, destFile)
 ## =============================================================================
 
+## -----------------------------------------------------------------------------
+## 现在深交所提供了汇总的 excel 数据
+## 可以直接下载
+## ----------------------------
+url <- "http://www.szse.cn/szseWeb/ShowReport.szse"
+payload <- list(
+    SHOWTYPE  = 'xlsx',
+    CATALOGID = '1265_xyjy',
+    tab1PAGENO= '1',
+    ENCODE    = '1',
+    TABKEY    = 'tab1'
+    )
+r <- GET(url, query = payload, timeout(10))
+
+destFile <- paste(SAVE_PATH, 'szse.xlsx', sep = '/')
+writeBin(content(r, 'raw'), destFile)
+## -----------------------------------------------------------------------------
