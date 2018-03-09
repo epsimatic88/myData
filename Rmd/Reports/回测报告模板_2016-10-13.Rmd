@@ -1,0 +1,194 @@
+---
+title: "DC6220e6g1"
+subtitle: "回测报告"
+output: 
+  beamer_presentation:
+    theme: SOCIB      ## sthlm, SOCIB
+    template: backtesting_template.tex
+    pandoc_args: '--latex-engine=xelatex'
+    keep_tex: false
+    toc: true
+    highlight: espresso  ## "default", "tango", "pygments", "kate", "monochrome", 
+                        ## "espresso", "zenburn", "haddock"
+date: \cntoday
+print: no
+---
+
+## 
+                 
+```{r warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+file_name_main <- "DC6220e6g1"
+
+
+if(exists('file_name_sub')){
+  file_name <- paste(file_name_main,file_name_sub, sep="_")
+}else{
+  file_name <- file_name_main
+}
+
+r.code.path <- "D:/汉云投资/R_Coding/"
+data.file.path <- "D:/汉云投资/林焕耿/"
+source(paste0(r.code.path, "loading_packages.R"), encoding = 'UTF-8', echo=TRUE)
+source(paste0(r.code.path, "loading_functions.R"), encoding = 'UTF-8', echo=TRUE)
+
+summary_return <- read_excel(paste0(data.file.path,file_name, "/",
+                                   file_name, "_回测结果", ".xlsx"), sheet = "收益统计")
+
+net_return <- summary_return[9,2] %>% gsub("%", "", .) %>% as.numeric()/100
+car <- summary_return[10,2] %>% gsub("%", "", .) %>% as.numeric()
+
+summary_year <- read_excel(paste0(data.file.path,file_name, "/",
+                                   file_name, "_回测结果", ".xlsx"), sheet = "按年份汇总") %>%
+  as.data.frame()
+```
+
+\vspace{0.45cm}
+
+\begin{center}
+\footnotesize
+\kai
+\arrayrulecolor{bluesocib}
+\arrayrulewidth=1pt
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.2}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{1}{rowcolor}{}
+\begin{tabular}{NNNNNNNNNNN}
+
+净收益率 & 
+年化收益率 & 
+胜率 & 
+赔率 & 
+最大回撤 & 
+年化收益/最大回撤 & 
+最长回撤期 & 
+盈利系数 & 
+恢复系数 & 
+SR & 
+IR \\
+
+`r sprintf("%.2f", net_return *100)`\% & 
+`r sprintf("%.2f", car)`\% & 
+`r gsub("%","",summary_return[14,2])`\%  & 
+`r summary_return[20,2]` & 
+`r gsub("%","",summary_return[26,2])`\% & 
+`r summary_return[32,2]` & 
+`r summary_return[27,2]`  & 
+`r summary_return[17,2]` & 
+`r summary_return[28,2]` & 
+`r summary_return[29,2]` & 
+`r summary_return[31,2]` \\
+
+\end{tabular}
+\end{center}
+\normalsize
+
+\vspace{0.02cm}
+
+\begin{center}
+\begin{figure}
+\includegraphics[width=15cm]{`r paste0(data.file.path,file_name, "/", file_name, "_基金产品净值曲线")`.png}
+\end{figure}
+\end{center}
+
+
+## Test
+
+
+## testsdgjsdlkgj 
+
+## 交易情况
+
+\begin{center}
+\footnotesize
+\kai
+\arrayrulecolor{bluesocib}
+\arrayrulewidth=1pt
+\setlength{\tabcolsep}{2.4pt}
+\renewcommand{\arraystretch}{1.1}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{1}{rowcolor}{}
+\begin{tabular}{NN|NB|NB|NBB|NB}
+
+%  \multicolumn{8}{D}{\large 统计数据}\\
+
+  交易次数 & `r summary_return[11,2]` & 
+  总盈利 & \cellcolor{redup!95} `r formatC(as.numeric(summary_return[15,2]), format="d", big.mark=',')`   
+  & 平均盈利 &  \cellcolor{redup!95} `r formatC(as.numeric(summary_return[21,2]), format="d", big.mark=',')` &
+  \multicolumn{3}{D}{单笔盈利 / 亏损交易} &
+  \multicolumn{2}{C}{连续盈利 / 亏损交易}\\
+  
+  盈利次数 & \cellcolor{redup!95} `r summary_return[12,2]` & 
+  总亏损 & \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[16,2]), format="d", big.mark=',')`   & 
+  平均亏损 & \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[23,2]), format="d", big.mark=',')` &
+  最大金额 & \cellcolor{redup!95} `r formatC(as.numeric(summary_return[21,2]), format="d", big.mark=',')` &
+  \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[23,2]), format="d", big.mark=',')` &
+  最大连续盈利次数 & \cellcolor{redup!95} `r summary_return[33,2]`\\
+  
+  胜率 & \cellcolor{redup!95} `r gsub("%","",summary_return[14,2])`\% & 
+  盈利系数 & \cellcolor{redup!95}`r summary_return[17,2]` & 
+  赔率 & \cellcolor{redup!95}`r summary_return[20,2]` &
+  最大比例 & \cellcolor{redup!95} `r gsub("%","",summary_return[22,2])`\% &
+  \cellcolor{greendown!95} `r gsub("%","",summary_return[24,2])`\% &
+  最大连续亏损次数 & \cellcolor{greendown!95} `r summary_return[34,2]`\\
+
+\end{tabular}
+\end{center}
+\normalsize
+
+\vspace{0.02cm}
+
+\begin{center}
+\begin{figure}
+\includegraphics[width=15cm]{`r paste0(data.file.path,file_name, "/", file_name, "_基金产品净值日内波动情况")`.png}
+\end{figure}
+\end{center}
+
+## 按年份统计
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+# knitr::kable
+library(stargazer)
+library(xtable)
+xtable(summary_year)
+```
+
+\setlength{\tabcolsep}{12pt}
+\begin{center}
+\kai
+\arrayrulecolor{bluesocib}
+\arrayrulewidth=1pt
+\renewcommand{\arraystretch}{1.4}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{3}{rowcolor}{}
+
+\begin{tabular}{rcrrr}
+
+\multicolumn{5}{D}{\large 不同年份的收益情况}\\
+
+ & 年份 & 收益率 & 最大回撤 & 收益率/最大回撤 \\ 
+  
+  1 & 2006 & \cellcolor{redup!85} 20.38\% & 7.77\% & 2.62 \\ 
+  2 & 2007 & \cellcolor{redup!95} 39.95\% & 3.14\% & 12.74 \\ 
+  3 & 2008 & \cellcolor{redup!65} 11.80\% & 6.59\% & 1.79 \\ 
+  4 & 2009 & \cellcolor{redup!85} 27.20\% & 2.90\% & 9.39 \\ 
+  5 & 2010 & \cellcolor{redup!70} 13.15\% & 7.51\% & 1.75 \\ 
+  6 & 2011 & \cellcolor{redup!60} 2.74\% & 7.60\% & 0.36 \\ 
+  7 & 2012 & \cellcolor{redup!75} 14.06\% & 14.16\% & 0.99 \\ 
+  8 & 2013 & \cellcolor{redup!65} 11.57\% & 3.21\% & 3.61 \\ 
+  9 & 2014 & \cellcolor{greendown!75} -2.36\% & 8.53\% & -0.28 \\ 
+  10 & 2015 & \cellcolor{redup!95} 16.18\% & 16.84\% & 0.96 \\ 
+  11 & 2016 & \cellcolor{redup!100} 45.07\% & 10.44\% & 4.32 \\    
+   
+\end{tabular}
+\end{center}
+\setlength{\tabcolsep}{12pt}
+
+
+## 交易分布统计
+
+\begin{center}
+\begin{figure}
+\includegraphics[width=15cm]{`r file_name`.png}
+\end{figure}
+\end{center}

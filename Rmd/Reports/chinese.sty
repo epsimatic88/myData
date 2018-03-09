@@ -1,0 +1,186 @@
+
+
+% Language & Fonts
+% **************************************
+%\ProvidesPackage{zhfontcfg}
+\usepackage{fontspec}
+\usepackage{xltxtra,xunicode} 
+\usepackage[CJKchecksingle,CJKnumber]{xeCJK}
+%\usepackage[slantfont, boldfont, CJKaddspaces,CJKchecksingle]{xeCJK} 
+% \CJKsetecglue{\hskip 0.15em plus 0.05em minus 0.05em}
+% slanfont: 允许斜体
+% boldfont: 允许粗体
+% CJKnormalspaces: 仅忽略汉字之间的空白,但保留中英文之间的空白。 
+% CJKchecksingle: 避免单个汉字单独占一行。
+% CJKaddspaces: [备选]忽略汉字之间的空白,并且自动在中英文转换时插入空白。
+%%%%%%%%%%%%%%%% 重定义字号命令 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\XeTeXlinebreaklocale "zh"                                                %%  
+\XeTeXlinebreakskip = 0pt plus 1pt minus 0.1pt  %%這兩行一行使中文能自動換行  %%
+%%%%%%%%%%%%%%%% 重定义字号命令 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% 将系统字体名映射为逻辑字体名称，主要是为了维护的方便 %%%%%%%%%%%%%%%
+\newcommand\fontnamesong{SimSun}                % 宋体:style=Regular,常规    %
+\newcommand\fontnamefsong{FangSong}             % 仿宋:style=Regular        %
+\newcommand\fontnamezhsong{STZhongsong}         % 华文中宋:style=Regular     %
+\newcommand\fontnamezhkai{STKaiti}              % 华文楷体:style=Regular     %
+\newcommand\fontnamekai{KaiTi}                  % 楷体:style=Regular        %
+\newcommand\fontnamehei{SimHei}                 % 黑体,SimHei:style=Regular %
+\newcommand\fontnameyahei{Microsoft YaHei}      % 微软雅黑:style=Regular     %
+\newcommand\fontnameyou{YouYuan}                % 幼圆:style=Regular        %
+\newcommand\fontnameylisu{LiSu}                 % 隶书:style=Regular        %
+\newcommand\fontnamemono{DejaVu Sans Mono}                                 %
+\newcommand\fontnameroman{Times New Roman}                                 %
+\newcommand\fontnamegeorgia{Georgia}                                       %
+%%%%%%%%%%%%%%%% 将系统字体名映射为逻辑字体名称，主要是为了维护的方便 %%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%% 定义新字体 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\setCJKfamilyfont{song}{SimSun}  
+\setCJKfamilyfont{kai}{KaiTi}
+\setCJKfamilyfont{hei}{SimHei}
+\setCJKfamilyfont{fangsong}{FangSong}
+\setCJKfamilyfont{lisu}{LiSu}
+\setCJKfamilyfont{youyuan}{YouYuan}
+
+\newcommand{\song}{\CJKfamily{song}}                       % 自定义宋体
+\newcommand{\kai}{\CJKfamily{kai}}                         % 自定义楷体
+\newcommand{\hei}{\CJKfamily{hei}}                         % 自定义黑体
+\newcommand{\fsong}{\CJKfamily{fangsong}}                  % 自定义仿宋体
+\newcommand{\lisu}{\CJKfamily{lisu}}                       % 自定义隶书
+\newcommand{\youyuan}{\CJKfamily{youyuan}}                 % 自定义幼圆
+%%%%%%%%%%%%%%% 定义新字体 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%xeCJK字体设置%%%%%%%%%%%%%%%%%%%%%%%%%
+\punctstyle{kaiming}                  % 设置中文标点样式
+                                      % 支持quanjiao、banjiao、kaiming hangmobanjiao等多种方式
+%%%%%%%%%%%%%%%% 设置正文字体 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% 设置正文字体 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% lnote Book style
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\setmainfont[Mapping=tex-text]{Adobe Garamond Pro}  				%Mapping fixes endash & emdash
+\newfontfamily\lmr{Latin Modern Roman}
+\newfontfamily\courier{Courier New}
+% \setCJKmainfont[BoldFont={Adobe Heiti Std}, ItalicFont={Adobe Kaiti Std}]{Adobe Song Std}%
+% \setCJKsansfont{Adobe Heiti Std}
+% \setCJKmonofont{Adobe Fangsong Std}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% lnote style
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% -> Elegant Book style
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%字体设置
+\defaultfontfeatures{Mapping=tex-text} 
+%\setmainfont[Ligatures=TeX]{Minion Pro} %  (\textrm)         %% 原来的
+\setmainfont[Ligatures=TeX]{方正中等线简体}
+%\setsansfont{Myriad Pro} %  (\textsf)                        %% 原来的
+\setsansfont{方正中等线简体} %  (\textsf) 
+%\setmonofont{Inconsolata}%Palatino Linotype
+%-中文字体设置-%
+\RequirePackage{xeCJK}
+%\setCJKmainfont[BoldFont={黑体},ItalicFont={楷体}]{华文中宋}%方正书宋_GBK Adobe Song Std L
+
+%%%% SimSun
+%%%% \setCJKmainfont[BoldFont={Adobe Heiti Std}, ItalicFont={Adobe Kaiti Std}]{Adobe Song Std}%  %% 正文字体
+%%%% \setCJKmainfont[BoldFont={Adobe Heiti Std}, ItalicFont={Adobe Kaiti Std}]{STZhongsong}%  %% 正文字体  %% 原来的
+\setCJKmainfont[BoldFont={Adobe Heiti Std}, ItalicFont={Adobe Kaiti Std}]{方正中等线简体}%  %% 正文字体
+%%%% \setCJKmainfont[BoldFont={黑体},ItalicFont={楷体}]{华文中宋} %方正书宋_GBK Adobe Song Std L
+
+%\setCJKmainfont[ItalicFont={楷体}]{Adobe Song Std}
+%\setCJKmainfont[ItalicFont={楷体}]{Adobe Song Std}
+
+%\setCJKsansfont[BoldFont={黑体}]{方正中等线简体}
+\setCJKsansfont[BoldFont={黑体}]{方正中等线简体}
+
+\setCJKmonofont{方正中等线简体}
+
+\setCJKfamilyfont{new}{方正苏新诗柳楷简体}
+\setCJKfamilyfont{zhsong}{华文中宋}
+\setCJKfamilyfont{note}{方正启体简体}
+
+\setCJKfamilyfont{shouxie}{方正启体简体}
+\newcommand{\shouxie}{\CJKfamily{shouxie}}                       % 自定义shouxie
+
+\newfontfamily\gara{Adobe Garamond Pro}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% <- Elegant Book style
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\xeCJKsetcharclass{"0}{"2E7F}{0}
+%\xeCJKsetcharclass{"2E80}{"FFFF}{1}
+\DeclareTextAccent{\.}{EU1}{"0307}
+%\DeclareTextAccent{\v}{EU1}{"030C}
+%\DeclareTextAccent{\d}{EU1}{"0323}
+%\DeclareTextAccent{\b}{EU1}{"0331}
+
+\usepackage{etex}
+\usepackage{metalogo,mflogo,texnames}
+\usepackage{textcomp}
+
+\usepackage[normalem]{ulem}
+%\usepackage{xltxtra}                % load etex automatically
+
+%%%%%%%%%%%%%%%% 设置常用中文字号，方便调用 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\yihao}{\fontsize{26pt}{36pt}\selectfont}            % 一号, 1.4倍行距
+\newcommand{\erhao}{\fontsize{22pt}{28pt}\selectfont}            % 二号, 1.25倍行距
+\newcommand{\xiaoer}{\fontsize{18pt}{18pt}\selectfont}           % 小二, 单倍行距
+\newcommand{\sanhao}{\fontsize{16pt}{24pt}\selectfont}           % 三号, 1.5倍行距
+%\newcommand{\xiaosan}{\fontsize{15pt}{22pt}\selectfont}         % 小三, 1.5倍行距
+\newcommand{\xiaosan}{\fontsize{15pt}{36pt}\selectfont}          % 小三, 论文行距
+\newcommand{\sihao}{\fontsize{14pt}{21pt}\selectfont}            % 四号, 1.5倍行距
+\newcommand{\banxiaosi}{\fontsize{13pt}{19.5pt}\selectfont}      % 半小四, 1.5倍行距
+\newcommand{\xiaosi}{\fontsize{12pt}{18pt}\selectfont}           % 小四, 1.5倍行距
+\newcommand{\dawuhao}{\fontsize{11pt}{11pt}\selectfont}          % 大五号, 单倍行距
+\newcommand{\wuhao}{\fontsize{10.5pt}{10.5pt}\selectfont}        % 五号, 单倍行距z
+\newcommand{\xiaowu}{\fontsize{9pt}{9pt}\selectfont} 
+\newcommand{\liuhao}{\fontsize{7.5pt}{7.5pt}\selectfont}
+%%%%%%%%%%%%%%%% 设置常用中文字号，方便调用 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%% 章节等名称重定义 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% 章节等名称重定义 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\contentsname}{\textcolor{mythemecolor}{目录}}  
+\renewcommand{\abstractname}{摘要}
+\renewcommand{\indexname}{索引}
+\renewcommand{\listfigurename}{插图目录}
+\renewcommand{\listtablename}{表格目录}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+% \renewcommand{\appendixname}{附录}
+%\renewcommand{\appendixpagename}{附录}
+%\renewcommand{\appendixtocname}{附录}
+%\renewcommand\refname{参考文献} 
+%%%%%%%%%%%%%%%% 章节等名称重定义 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% **************************************
+% Float
+% **************************************
+\usepackage{caption}
+\DeclareCaptionType [fileext=loe]{lcode}[代码][代码目录]
+%\usepackage{float}
+%\newfloat{example}{tbph}{loe}
+%\restylefloat*{example}
+%\floatstyle{plain}
+%\floatname{example}{例}
+%\captionsetup[example]{position=top}
+%\newcommand{\listofexamples}{\listof{example}{例目录}}
+
+%%%%%%%%%%%%%%%% 中文特殊符号处理 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\pozhehao}{\kern0.3ex\rule[0.8ex]{2em}{0.1ex}\kern0.3ex}
+                                           % 中文破折号，据说来自清华模板
+%%%%%%%%%%%%%%%% 中文特殊符号处理 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{comment}
+%\setlength{\marginparwidth}{1in}
+\setlength{\abovedisplayskip}{.1pt}
+\setlength{\belowdisplayskip}{.1pt}
+%\pagestyle{plain}
+\renewcommand{\baselinestretch}{1.05}     %%%%%% 调整行间距
+\setlength{\parskip}{1ex}                %%%%%% 调整段落间距
+\setlength{\skip\footins}{0.3in}           %%%%%% footntoe
+
+\setlength{\parindent}{2em}
+%\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt plus 2pt minus 1pt}
+\setlength{\emergencystretch}{3em}  % prevent overfull lines
+\end{comment}
+%---------------------------------------------------------------------------------------
+%%%%%%%%%%%%%%%% 设置chapter、section与subsection的格式 %%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%% \usepackage{titlesec,titletoc}
+

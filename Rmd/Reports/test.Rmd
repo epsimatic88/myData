@@ -1,0 +1,16 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+# Testing
+
+```{r}
+library(readxl)
+
+dataFile <- read_excel("Analysis/DC6220e6g1/DC6220e6g1_kdj.xlsx")
+
+dataFile
+
+```
+

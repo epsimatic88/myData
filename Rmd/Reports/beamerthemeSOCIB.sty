@@ -1,0 +1,174 @@
+\mode<presentation>
+\usepackage{fontspec}
+\defaultfontfeatures{Ligatures=TeX}
+%\setmainfont[Path = /home/ctroupin/.fonts/]{Cube-Regular2}
+%\setsansfont[Path = /home/ctroupin/.fonts/]{Cube-Regular2}
+
+\setbeamercovered{invisible}
+
+\usepackage[framemethod=tikz]{mdframed}
+\usepackage{tikz}
+
+\usetikzlibrary{arrows,shapes,backgrounds}
+\tikzstyle{every picture}+=[remember picture]
+\tikzstyle{na} = [baseline=-.5ex]
+
+% Define new colors using RGB code
+\definecolor{bluesocib}{RGB}{66,175,182}  	
+\definecolor{blacksocib}{RGB}{18,32,47}
+\definecolor{redsocib}{RGB}{255,102,0}			
+\definecolor{arrowcolor}{RGB}{255,220,63}
+
+% Set color for each element
+\setbeamercolor{title}{fg=bluesocib,bg=blacksocib}
+\setbeamercolor{background canvas}{bg=blacksocib}
+\setbeamercolor{normal text}{bg=blacksocib,fg=white}
+\setbeamercolor{frametitle}{fg=bluesocib}
+\setbeamercolor{date}{fg=bluesocib}
+\setbeamercolor{institute}{fg=bluesocib}
+\setbeamercolor{structure}{bg=black,fg=blacksocib}
+\setbeamercolor{item projected}{fg=blacksocib,bg=white}
+\setbeamercolor{item}{bg=black,fg=bluesocib}
+\setbeamercolor{description item}{fg=bluesocib}
+\setbeamercolor{block title}{fg=white}
+
+%%------------- TITLE PAGE
+\def\titlepage{\usebeamertemplate{title page}}
+\setbeamertemplate{title page}
+{\begin{center}
+  \begin{minipage}[b][\paperheight]{0.8\textwidth}
+    \vfill
+    \vspace*{0em}
+    \ifx\inserttitle\@empty%
+    \else%
+    {\raggedright\linespread{1.0}\usebeamerfont{title}\usebeamercolor[fg]{title}\inserttitle\par}%
+    \vspace*{0.5em}
+    \fi%
+    \begin{tikzpicture}\draw[normal text.fg] (0, 0) -- (\textwidth, 0);\end{tikzpicture}%
+    \vspace*{0.5em}
+    \ifx\insertsubtitle\@empty%
+    \else%
+    {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+    \vspace*{5em}
+    \fi%
+    
+    \ifx\insertauthor\@empty%
+    \else%
+    {\usebeamerfont{author}\usebeamercolor[fg]{author}\insertauthor \par}%
+    \vspace*{0mm}
+    \fi%
+    \ifx\insertinstitut\@empty%
+    \else%
+    \vspace*{0mm}
+    {\usebeamerfont{institute}\usebeamercolor[fg]{institute}\insertinstitute\par}%
+    \fi%
+    \ifx\insertdate\@empty%
+    \else%
+    {\usebeamerfont{date}\usebeamercolor[fg]{date}\insertdate \par}%
+    \fi%
+    
+    \vfill
+    \vspace{-2cm}
+ 	\hfill 
+ 	\begin{center}
+ 	\includegraphics[height=10mm]{hi_cloud_logo_dark} 
+ 	\end{center}
+ 	\hspace{0mm} \par
+    \vspace*{4mm}
+  \end{minipage}
+  \end{center}
+}      
+%% \begin{tikzpicture}[remember picture,overlay]
+%% \node[anchor=north west, xshift=5pt, yshift=-5pt] at (current page.north west) {\includegraphics[height=0.55cm]{logo_socib_long}};
+%% \end{tikzpicture}
+%%------------- TITLE PAGE
+
+
+% Set size for the frame title (if larger, use \huge)
+%% frame title 的文字大小
+%% \setbeamerfont{frametitle}{size=\LARGE}
+\setbeamerfont{frametitle}{size=\huge}
+
+% Remove navigation symbol
+\setbeamertemplate{navigation symbols}{}
+
+%% frame title 的格式
+% Add line below title and space above it
+\setbeamertemplate{frametitle}{\hspace{-0.3cm} \shouxie \insertframetitle}
+%% 于上面的距离
+\addtobeamertemplate{frametitle}{\vspace*{.1cm}}
+
+%% \setbeamertemplate{frametitle}{\insertframetitle\par\vskip-6pt\hrulefill}
+%% \addtobeamertemplate{frametitle}{\vspace*{.5cm}}
+
+%% 右上角的logo：
+%% logo_socib_square
+% Add logos in the left and right corners
+\begin{comment}
+\addtobeamertemplate{background}{}{%
+\begin{tikzpicture}[remember picture,overlay]
+\node[anchor=north east,yshift=-2pt] at (current page.north east) {\includegraphics[height=0.5cm]{logo_socib_square}};
+\end{tikzpicture}}
+\end{comment}
+
+\begin{comment}
+\addtobeamertemplate{background}{}{%
+\begin{tikzpicture}[remember picture,overlay]
+\node[anchor=north west,yshift=-2pt] at (current page.north west) {\includegraphics[height=0.35cm]{logo_socib_short}};
+\end{tikzpicture}}
+\end{comment}
+
+% Other elements of the template
+\setbeamersize{text margin left=1cm}
+\setbeamertemplate{items}[triangle] 
+
+\newcommand{\subsecnum}[1]{\tikz[baseline=(char.base)]{%
+            \node[shape=circle,fill=white,draw=bluesocib,inner sep=3pt] (char) {\textcolor{blacksocib}{#1}};}}
+
+% Create new environments for the enumeration            
+\NewDocumentEnvironment{vertline}{O{0.2em} O{-0.5cm} O{white}}%
+  {% \begin{coderule}[<rule width>][<rule sep>][<rule colour>]  
+    \begin{mdframed}%
+      [topline=false,rightline=false,bottomline=false,%
+       innertopmargin=0pt,innerrightmargin=0pt,innerbottommargin=0pt,%
+       skipabove=0.25cm,skipbelow=0.\baselineskip,%
+       innerleftmargin=#2,outerlinewidth=#1,linecolor=#3,backgroundcolor=blacksocib]
+  }
+  {\end{mdframed}}% \end{coderule}
+  
+
+\newcommand{\longdash}{-\!-\!-\!-\!}
+
+\newenvironment{enumline}{
+	\begin{vertline}\begin{enumerate}[label= \longdash \protect\subsecnum{\arabic*},font=\sffamily,leftmargin=*,labelindent=0.5cm,before=\color{white}]
+}{
+	\end{enumerate}\end{vertline}
+}
+
+\newenvironment{itemline}{
+	\begin{vertline}\begin{enumerate}[label= \longdash \protect$\bullet$,font=\sffamily,leftmargin=*,labelindent=0.5cm,before=\color{white}]
+}{
+	\end{enumerate}\end{vertline}
+}
+
+% Define the footline : date at center and www.socib.es on the right side
+\defbeamertemplate*{footline}{}
+{%
+  \leavevmode%
+  \hbox{\begin{beamercolorbox}[wd=.3333\paperwidth,dp=2.5ex,ht=4.0ex]{}%
+    \usebeamerfont{institute}{ }
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.33333\paperwidth,dp=2.5ex,center]{}%
+  %% No Date，不显示脚标的日期
+  %%  \usebeamerfont{institute}{\tiny {\insertshortdate}}
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=.33333\paperwidth,dp=2.5ex,right,rightskip=0.3cm]{date}%
+%% 脚标：网址或者签名
+%%   {\tiny \textrm{www.socib.es}}
+{\tiny \textrm{@ William Fang}}
+  \end{beamercolorbox}}%
+  \vskip0pt%
+}
+
+\mode
+<all>

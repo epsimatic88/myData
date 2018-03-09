@@ -1,0 +1,283 @@
+---
+title: "聚源数据对比：期货公司持仓排名"
+author: "William Fang"
+date: "`r Sys.Date()`"
+output:
+  tufte::tufte_html: default
+link-citations: yes
+---
+
+
+```{r setting, echo=FALSE, message=FALSE,warning=FALSE}
+rm(list = ls())
+logMainScript <- c("jydb_oiRank.R")
+
+suppressMessages({
+  source('/home/fl/myData/R/Rconfig/myInit.R')
+  options(width = 80)
+})
+
+```
+
+```{r setup, include=FALSE}
+library(tufte)
+# tufte版本变化之后更新knitr缓存
+knitr::opts_chunk$set(tidy = FALSE, cache.extra = packageVersion('tufte'),
+                      echo = TRUE, warning = FALSE, message = FALSE,
+                      results = 'markup', cache = FALSE)
+options(htmltools.dir.version = FALSE)
+```
+
+## 数据介绍
+
+聚源数据位于 `MySQL` 数据库：`jydb.Fut_MemberRankByContract`。以下介绍各个字段，以及与我们的数据库 `china_futures_bar.oiRank` 相对应的关系：^[我已经在提取 `MySQL` 数据库的时候把字段设置为一样]
+
+
+```{r echo=F}
+fieldsJY <- c('ID','EndDate','ExchangeCode','ContractInnerCode','ContractCode'
+              ,'ReportPeriod','RankNumber','MemberInnerCode','MemberCode','MemberAbbr'
+              ,'IndicatorCode','IndicatorName','IndicatorVolume','ChangeVolume','UpdateTime','JSID')
+fieldsJYName <- c('聚源编号','交易日期','交易所代码','聚源合约编码','合约代码'
+                  ,'报告期','排名','聚源期货公司编码','期货公司代码','期货公司名称'
+                  ,'变量编码','变量名称','变量数值','变动大小','数据库更新时间','聚源代码')
+fieldsOiRank <- c('','TradingDay','','','InstrumentID'
+                  ,'','Rank','','','BrokerID'
+                  ,'','ClassID','Amount','DiffAmount','','')
+fields <- data.table(fieldsJY, fieldsJYName, fieldsOiRank)
+
+knitr::kable(fields)
+```
+
+## 从数据库提取数据
+
+从两个数据表里提取我们需要的数据。目前，聚源的数据最早是到 `2016-06-06`。^[如果在提取中文字段的时候，会出现乱码无法显示，这时候需要进行转码处理。使用命令 `iconv(myString, from = 'GB18030', to = 'utf-8')`。]
+
+```{r echo=T}
+## =============================================================================
+## 从数据库读取 jydb 数据
+mysql <- mysqlFetch('jydb')
+dtJydb <- dbGetQuery(mysql,"
+            SELECT EndDate as TradingDay,
+                   ContractCode as InstrumentID,
+                   RankNumber as Rank,
+                   MemberAbbr as BrokerID,
+                   IndicatorName as ClassID,
+                   IndicatorVolume as Amount,
+                   ChangeVolume as DiffAmount
+            FROM Fut_MemberRankByContract;
+") %>% as.data.table()
+dtJydb[, ":="(
+    TradingDay = substr(TradingDay,1,10),
+    InstrumentID = toupper(InstrumentID),    ## 聚源的是全部大写
+    BrokerID = iconv(BrokerID, from = 'GB18030', to = 'utf-8'),
+    ClassID  = iconv(ClassID, from = 'GB18030', to = 'utf-8')
+    )]
+dtJydb[ClassID == '成交量统计', ClassID := 'Turnover'] %>%
+  .[ClassID == '持买仓量统计', ClassID := 'longPos'] %>%
+  .[ClassID == '持卖仓量统计', ClassID := 'shortPos']
+## =============================================================================
+```
+
+
+```{r echo=T}
+
+## =============================================================================
+## 从数据库读取 oiRank
+mysql <- mysqlFetch('china_futures_bar')
+dtOiRank <- dbGetQuery(mysql,paste("
+            SELECT *
+            FROM oiRank
+            WHERE TradingDay between", dtJydb[,gsub('-','',min(TradingDay))],
+            "AND ", dtJydb[,gsub('-','',max(TradingDay))])
+) %>% as.data.table()
+dtOiRank[,":="(
+    InstrumentID = toupper(InstrumentID),    ## 聚源的是全部大写
+    BrokerID = iconv(BrokerID, from = 'GB18030', to = 'utf-8')
+)]
+## =============================================================================
+
+```
+
+
+## 数据对比
+
+从数据的长度来看，两个数据库的数据基本是一样的。
+
+```{r}
+## 聚源数据
+nrow(dtJydb)
+
+## 爬虫数据
+nrow(dtOiRank)
+```
+
+下面我做其他方面的对比。
+
+### 合并数据
+
+使用字段来合并两个数据：`by = c('TradingDay', 'InstrumentID', 'ClassID', 'Rank')`。这样，我们就可以对比
+
+- 相同交易日期:`TradingDay`
+- 同一只合约:`InstrumentID`
+- 同一种类型:`ClassID`
+- 在同一个排名:`Rank`
+
+之间的差异。^[我试图使用同一个 `BrokerID`，但是系统会报错，好像是做笛卡尔集的时候超过了内存。]
+
+
+```{r}
+dt <- merge(dtJydb, dtOiRank,
+    by = c('TradingDay', 'InstrumentID', 'ClassID', 'Rank'), all = TRUE)
+dt
+```
+
+### 计算误差 `err`
+
+通过以上的转换与合并，我们能够处理二者之间的差异。
+
+```{r}
+suppressMessages({
+dt[, ":="(
+    errAmount = Amount.x - Amount.y,
+    errDiffAmount = DiffAmount.x - DiffAmount.y
+)]
+
+## 如果 BrokerID 不一致，记做 1
+dt[, errBrokerID := ifelse(BrokerID.x != BrokerID.y, 1, 0)]
+})
+
+
+
+dt[, summary(errAmount)]
+
+dt[, summary(errDiffAmount)]
+```
+
+发现，针对 `Amout`, 两个数据库是一致的。但是呢，我也发现这个 `DiffAmount` 是不一样滴。这个有点奇怪。更加奇怪的事情，这个 `effDiffAmount` 竟然是 **对称** 的。有木有！！！
+
+
+因此，可以推断的是，这里面一定存在某种系统性的偏差。
+
+
+继续做进一步分析。来看看这个不一样的 errDiffAmount 都是哪些日期，涉及到哪些合约。
+
+```{r}
+
+dt[errDiffAmount != 0][,unique(TradingDay)]
+
+dt[errDiffAmount != 0][,unique(InstrumentID)]
+```
+
+惊天大发现！所有的不一致都是发生在这些天，这些合约。因此，我们可以抽一两个数据，跟交易所网站的数据做一个对比，就可以发现问题所在了。
+
+### 与交易所网页对比
+
+我们先拿来 2017-01-03 来看看。
+
+```{r echo=TRUE}
+
+dt[TradingDay == '2017-01-03'][InstrumentID == 'C1701'][errBrokerID == 1]
+```
+
+机智如我者，已经发现问题了：
+
+- `BrokerID` 出现的错误是，上下位置调换了。而且都是间隔的。
+- 更重要的事情是，这两个不一致的 `BrokerID`, 其实 `Amount` 是一样的。这就有点意思，因为我们在做排序的时候，有可能是 **对同样数值的变量，排序方法的不同会导致排名的不同**。
+
+好了，我们去看看交易所的网站。^[从上面的合约我们可以看出，基本上，出现不一致的合约都是在 `DCE` 交易的合约。]
+
+```{r echo=FALSE, out.width='100%',fig.fullwidth = TRUE}
+knitr::include_graphics('/home/fl/myData/R/DataCompare/jydb/2017-01-03.png')
+```
+
+看到没，在这种情况下，**聚源的排名是跟交易所网页不一样的，而我们爬虫的数据是跟交易所一致。**
+
+
+下面再看看其他的合约
+
+```{r echo=TRUE}
+dtJydb[TradingDay == '2017-01-03'][InstrumentID == 'C1703'][ClassID == 'Turnover'][order(Rank)]
+
+dtOiRank[TradingDay == '2017-01-03'][InstrumentID == 'C1703'][ClassID == 'Turnover'][order(Rank)]
+
+dt[TradingDay == '2017-01-03'][InstrumentID == 'C1703'][ClassID == 'Turnover'][errBrokerID ==1]
+
+```
+
+```{r echo=FALSE, out.width='100%',fig.fullwidth = TRUE}
+knitr::include_graphics('/home/fl/myData/R/DataCompare/jydb/2017-01-03-2.png')
+```
+
+哦科，现在比较明朗了。
+
+
+再换一个交易日期，比如，2017-03-31.
+
+
+```{r}
+dtJydb[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][order(Rank)]
+dtOiRank[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][order(Rank)]
+dt[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][errBrokerID ==1]
+
+dtJydb[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][order(Rank)][Rank %between% c(60,70)]
+dtOiRank[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][order(Rank)][Rank %between% c(60,70)]
+
+dtJydb[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][order(Rank)][Rank %between% c(100,102)]
+dtOiRank[TradingDay == '2017-03-31'][InstrumentID == 'A1705'][ClassID == 'longPos'][order(Rank)][Rank %between% c(100,102)]
+```
+
+```{r echo=FALSE, out.width='100%',fig.fullwidth = TRUE}
+knitr::include_graphics('/home/fl/myData/R/DataCompare/jydb/2017-03-31.png')
+```
+
+这一次，**聚聚的数据是正确的，而我们的数据是不一致，但是，实际上，二者的数量是一样的，所以从统计的角度看排名，理论上应该赋予同一个数值。**
+
+
+## 结论
+
+通过以上的对比分析，我们可以得到以下结论：
+
+- 两个数据源在数据的数量上面基本上一致，不存在显著性的差异^[这儿之间的绝对值差别为 `r nrow(dtJydb) - nrow(dtOiRank)`，相对于 `r nrow(dtJydb)` 基本上是没有影响。]
+- 从 `Amout` 的角度看，这个是一样的，也就是说，**在同一个交易日期，针对同一个合约，Amout 都不存在差异**
+- 但是，由于二者采用的排序处理方法的差异，**可能导致同一个数值的 Amout, 会给予不同的排序，这个可以通过我们自己处理来解决**
+- 处理方法即：
+  
+> 1. 先 group by c(TradingDay, InstrumentID, ClassID)
+> 2. 然后在组内使用函数 rank(x, ties.method = 'min')， 对同一个数值，使用同样的排名。
+
+
+
+
+### 看看缺的是不是主力
+
+```{r}
+dtMissing <- dt[is.na(errAmount)]
+dtMissing[, main := NA]
+dtMissing[, product := gsub('[0-9]','',InstrumentID)]
+
+mysql <- mysqlFetch('china_futures_bar')
+dtMain <- dbGetQuery(mysql, "select * from main_contract_daily where tradingday between 20160914 and 20170626") %>% as.data.table()
+dtMain[, Main_contract := toupper(Main_contract)]
+dtMain[, Product := toupper(Product)]
+
+for (i in 1:nrow(dtMissing)) {
+  print(i)
+  temp <- dtMain[TradingDay == dtMissing[i,TradingDay]][Product == dtMissing[i,product],Main_contract]
+  if(length(temp) != 0){
+    dtMissing$main[i] <- temp
+  }
+}
+
+dtMissing[, isMain := ifelse(InstrumentID == main,
+                             1,0)]
+dtMissing[isMain == 1]
+```
+
+
+
+
+
+
+
+
+

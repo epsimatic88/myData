@@ -1,0 +1,17 @@
+---
+title: "HiCloud"
+subtitle: "回测报告"
+output: 
+  beamer_presentation:
+    theme: SOCIB      ## sthlm, SOCIB
+    template: backtesting_template.tex
+    pandoc_args: '--latex-engine=xelatex'
+    keep_tex: false
+    toc: true
+    highlight: espresso  ## "default", "tango", "pygments", "kate", "monochrome", 
+                        ## "espresso", "zenburn", "haddock"
+date: \cntoday
+print: no
+---
+
+sdf

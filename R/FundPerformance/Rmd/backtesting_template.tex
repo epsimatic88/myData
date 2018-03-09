@@ -1,0 +1,222 @@
+\PassOptionsToPackage{table}{xcolor} %% 参考：http://tex.stackexchange.com/questions/74921/how-to-resolve-option-clash-for-package-xcolor
+%%
+\documentclass[final,unknownkeysallowed, $if(handout)$handout,$endif$]{beamer}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 设计 section 首页
+\AtBeginSection[]{
+  \begin{frame}
+  \vfill
+  \centering
+  \begin{beamercolorbox}[sep=15pt,center,shadow=true,rounded=true]{title}
+    \usebeamerfont{title}\usebeamercolor[fg]{title}\insertsectionhead\par%
+  \end{beamercolorbox}
+  \vfill
+  \end{frame}
+}
+
+
+%% 全局的字体大小
+\usepackage{scrextend}
+\changefontsizes{9pt}
+
+%% 防止出现 Undefined control sequence. l.2 \par
+%% unknownkeysallowed
+\usepackage{comment}
+\usepackage{chinese}
+
+\newcommand{\cntoday}{\number\year 年 \number\month 月 \number\day 日} % 中文日期格式
+
+\geometry{lmargin=2.0cm, rmargin=2.0cm, paperwidth=192mm, paperheight=108mm}
+\setbeamersize{text margin left=1.0cm,text margin right=1.0cm}
+
+
+
+$if(listings)$
+\usepackage{listings}
+$endif$
+$if(lhs)$
+\lstnewenvironment{code}{\lstset{language=Haskell,basicstyle=\small\ttfamily}}{}
+$endif$
+$if(highlighting-macros)$
+$highlighting-macros$
+$endif$
+$if(verbatim-in-note)$
+\usepackage{fancyvrb}
+\VerbatimFootnotes % allows verbatim text in footnotes
+$endif$
+
+%%--------------------------------------------------------------------
+%% R 代码显示的字体大小
+%% change fontsize of R code
+\begin{comment}
+\let\oldShaded\Shaded
+\let\endoldShaded\endShaded
+\renewenvironment{Shaded}{\footnotesize\oldShaded}{\endoldShaded}
+\end{comment}
+
+%% change fontsize of output
+\let\oldverbatim\verbatim
+\let\endoldverbatim\endverbatim
+\renewenvironment{verbatim}{\tiny\oldverbatim}{\endoldverbatim}
+
+
+\usepackage[english]{babel}
+\usepackage{amsmath,amsfonts}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{shadowtext}
+\usepackage{animate}
+\usepackage{enumitem}
+
+\usepackage{booktabs}
+\usepackage{longtable}
+
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{colortbl}
+\definecolor{RoyalBlue}{rgb}{0.254902,0.411765,0.882353}
+\definecolor{mythemecolor}{RGB}{243,102,25} % theme color
+\definecolor{themecolor}{RGB}{243,102,25} % theme color
+\definecolor{mygray}{gray}{.9}
+\definecolor{mypink}{rgb}{.99,.91,.95}
+\definecolor{mycyan}{cmyk}{.3,0,0,0}
+\definecolor{myorange}{RGB}{243,102,25} % Define the orange color used for highlighting throughout the book
+\definecolor{myblue}{rgb}{0.55,0.79,0.94}% light blue
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{airforceblue}{rgb}{0.36, 0.54, 0.66}
+\definecolor{aliceblue}{rgb}{0.94, 0.97, 1.0}
+\definecolor{alizarin}{rgb}{0.82, 0.1, 0.26}
+\definecolor{almond}{rgb}{0.94, 0.87, 0.8}
+\definecolor{antiquewhite}{rgb}{0.98, 0.92, 0.84}
+\definecolor{azure}{rgb}{0.0, 0.5, 1.0}
+\definecolor{bubbles}{rgb}{0.91, 1.0, 1.0}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Define new colors using RGB code
+\definecolor{redup}{rgb}{1.0, 0.01, 0.24}
+\definecolor{greendown}{rgb}{0.31, 0.78, 0.47}
+
+$if(print)$ %% print:yes, 打印，背景为白色，使用主题 `sthlm`
+\definecolor{bluesocib}{rgb}{1.0, 0.98, 0.98}	
+\definecolor{blacksocib}{rgb}{1.0, 0.98, 0.98}	
+\definecolor{redsocib}{rgb}{1.0, 0.98, 0.98}	
+\definecolor{arrayrulecolor}{rgb}{1.0, 0.98, 0.98}	
+\definecolor{arrowcolor}{RGB}{255,220,63}
+\definecolor{tabletitlecolor}{rgb}{0.66, 0.66, 0.66}
+\definecolor{rowcolor}{rgb}{0.54, 0.81, 0.94}
+%% 	\definecolor{cornsilk}{rgb}{1.0, 0.97, 0.86}
+%% 	\definecolor{snow}{rgb}{1.0, 0.98, 0.98}
+%% 	\definecolor{babyblue}{rgb}{0.54, 0.81, 0.94}
+%%--------------------------------------------------------------
+$else$ %% print:no, 不打印，背景为黑色，使用主题 `SOCIB`
+\definecolor{bluesocib}{RGB}{66,175,182}  	
+\definecolor{blacksocib}{RGB}{18,32,47}
+\definecolor{redsocib}{RGB}{255,102,0}
+\definecolor{arrayrulecolor}{RGB}{66,175,182}  	
+\definecolor{arrowcolor}{RGB}{255,220,63}
+\definecolor{tabletitlecolor}{RGB}{66,175,182}
+\definecolor{rowcolor}{rgb}{0.18, 0.31, 0.31}
+%% \definecolor{darkslategray}{rgb}{0.18, 0.31, 0.31}
+$endif$
+
+\newcommand*{\arraycolor}[1]{\protect\leavevmode\color{#1}}
+\newcolumntype{A}{>{\columncolor{blacksocib}}c}
+\newcolumntype{B}{>{\columncolor{red!95}}c}
+\newcolumntype{C}{>{\columncolor{blue!50!white}}c}
+\newcolumntype{D}{>{\columncolor{tabletitlecolor}}c}
+\newcolumntype{E}{>{\columncolor{azure}}c}
+\newcolumntype{N}{>{\columncolor{blacksocib}}c}
+%--------------------------------
+%pdfpagemode=FullScreen,
+\hypersetup{bookmarksopen=true,
+bookmarksnumbered=true,  
+pdffitwindow=true, 
+pdfstartview=Fit,
+%pdfpagemode=FullScreen,
+pdffitwindow=true,
+pdftoolbar=true,
+pdfmenubar=true,
+pdfwindowui=true,
+pdfsubject={SOCIB},
+bookmarksopenlevel=0,
+colorlinks=true,
+linkcolor=blue,anchorcolor=black,%
+citecolor=blue,filecolor=black,%
+menucolor=black,urlcolor=white
+}
+
+%% \author[William]{William Fang}
+\author[]{}
+%\institute[汉云]{厦门 $$\cdot$$ 汉云投资}
+
+$if(title)$
+\title{\huge $title$}
+$endif$
+%%-------------------
+$if(subtitle)$
+\subtitle{\LARGE $subtitle$}
+$endif$
+%%-------------------
+$if(date)$
+\date{$date$}  
+$endif$
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+$if(theme)$
+\usetheme{$theme$}
+$else$
+\usetheme{SOCIB}
+$endif$
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\DeclareGraphicsExtensions{.png,.PNG,.JPG,.jpg,.pdf,.jpeg}
+\graphicspath{
+{./}
+}
+
+
+%% pandoc错误提示： \tightlist
+
+\def\tightlist{}
+\providecommand{\tightlist}{%
+\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\begin{document}
+
+\begin{comment}
+{
+\begin{frame}
+
+\centering
+
+\footnotesize
+\maketitle
+
+\end{frame}
+}
+\end{comment}
+
+
+%-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+%
+%	TITLE PAGE
+%
+%-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+\maketitle
+
+%\begin{frame}[plain]
+%	\titlepage
+%\end{frame}
+
+%-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+%
+%	TABLE OF CONTENTS: OVERVIEW
+%
+%-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+$body$
+
+\end{document}

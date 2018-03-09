@@ -1,0 +1,111 @@
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{cabin}
+    [2016/02/26 (Bob Tennent)  Supports Cabin fonts for all LaTeX engines.]
+
+\RequirePackage{ifxetex,ifluatex,xkeyval,textcomp}
+
+\newif\ifcabin@otf 
+\ifxetex
+  \cabin@otftrue
+\else\ifluatex
+  \cabin@otftrue
+\else  % [pdf]LaTeX
+  \cabin@otffalse
+\fi\fi
+
+\newif\ifcabin@default \cabin@defaultfalse
+\newif\ifcabin@lining \cabin@liningfalse
+\newif\ifcabin@tabular \cabin@tabularfalse
+\newif\ifcabin@semibold \cabin@semiboldfalse
+\newif\ifcabin@medium  \cabin@mediumfalse
+\newif\ifcabin@condensed \cabin@condensedfalse
+
+\newcommand*{\Cabin@scale}{1}
+\newcommand*{\CabinCondensed@scale}{1}  % corrections by Andreas Ahlrich 2016-02-26
+\DeclareOptionX{scaled}{\renewcommand*{\Cabin@scale}{#1}\renewcommand*{\CabinCondensed@scale}{#1}}
+\DeclareOptionX{scale}{\renewcommand*{\Cabin@scale}{#1}\renewcommand*{\CabinCondensed@scale}{#1}}
+
+\DeclareOptionX{default}{\cabin@defaulttrue}
+\DeclareOptionX{sfdefault}{\cabin@defaulttrue}
+\DeclareOptionX{type1}{\cabin@otffalse}
+\DeclareOptionX{semibold}{\cabin@semiboldtrue}
+\DeclareOptionX{bold}{\cabin@semiboldfalse}
+\DeclareOptionX{medium}{\cabin@mediumtrue}
+\DeclareOptionX{regular}{\cabin@mediumfalse}
+\DeclareOptionX{condensed}{\cabin@condensedtrue}
+
+\ExecuteOptionsX{bold,regular}
+\ProcessOptionsX\relax
+
+\ifcabin@otf
+  \def\cabin@boldstyle{Bold}
+  \ifcabin@semibold\def\cabin@boldstyle{SemiBold}\fi
+  \def\cabin@regstyle{Regular}
+  \ifcabin@medium\def\cabin@regstyle{Medium}\fi
+
+\else % type1
+
+  \def\bfseries@sf{b}
+  \ifcabin@semibold\def\bfseries@sf{sb}\fi
+  \def\mdseries@sf{m}
+  \ifcabin@medium\def\mdseries@sf{mb}\fi
+\fi
+
+\ifcabin@otf
+  \RequirePackage{fontspec}
+\else
+  \RequirePackage{fontenc,fontaxes,mweights}
+\fi
+
+\ifcabin@otf
+  \ifxetex\XeTeXtracingfonts=1\fi
+  \defaultfontfeatures{
+        Ligatures = TeX ,
+        Scale     = \Cabin@scale ,
+        Extension = .otf }
+  \ifcabin@condensed
+    \setsansfont
+        [ UprightFont    = *-\cabin@regstyle ,
+          ItalicFont     = *-\cabin@regstyle Italic ,
+          BoldFont       = *-\cabin@boldstyle , 
+          BoldItalicFont = *-\cabin@boldstyle Italic ]
+        {CabinCondensed}
+  \else
+    \setsansfont
+        [ UprightFont    = *-\cabin@regstyle ,
+          ItalicFont     = *-\cabin@regstyle Italic ,
+          BoldFont       = *-\cabin@boldstyle , 
+          BoldItalicFont = *-\cabin@boldstyle Italic ]
+        {Cabin}
+  \fi
+  % grab current family in case of subsequent change:
+  \let\cabinfamily\sfdefault  
+  \ifcabin@default\renewcommand*\familydefault{\cabinfamily}\fi
+  \newfontfamily\cabin
+        [ UprightFont    = *-\cabin@regstyle ,
+          ItalicFont     = *-\cabin@regstyle Italic ,
+          BoldFont       = *-\cabin@boldstyle , 
+          BoldItalicFont = *-\cabin@boldstyle Italic ]
+        {Cabin}
+  \newfontfamily\cabincondensed
+        [ UprightFont    = *-\cabin@regstyle ,
+          ItalicFont     = *-\cabin@regstyle Italic ,
+          BoldFont       = *-\cabin@boldstyle , 
+          BoldItalicFont = *-\cabin@boldstyle Italic ]
+        {CabinCondensed}
+\else % type1
+  \def\cabinfamily{Cabin-TLF}
+  \def\cabincondensedfamily{CabinCondensed-TLF}
+  \newcommand*\cabin{\fontfamily{\cabinfamily}\selectfont}
+  \newcommand*\cabincondensed{\fontfamily{\cabincondensedfamily}\selectfont}
+  \def\sfdefault{\cabinfamily}
+  \ifcabin@condensed\def\sfdefault{\cabincondensedfamily}\fi  
+  \ifcabin@default\edef\familydefault{\sfdefault}\edef\seriesdefault{\mdseries@sf}\fi
+\fi
+
+\ifcabin@otf
+% turn off defaults in case other fonts are selected:
+  \defaultfontfeatures{}
+\fi
+
+\endinput

@@ -1,0 +1,279 @@
+---
+title: "量化策略模型"
+subtitle: "回测报告"
+output: 
+  beamer_presentation:
+    theme: SOCIB      ## sthlm, SOCIB
+    template: backtesting_template.tex
+    pandoc_args: '--latex-engine=xelatex'
+    keep_tex: false
+    toc: true
+    highlight: espresso  ## "default", "tango", "pygments", "kate", "monochrome", 
+                        ## "espresso", "zenburn", "haddock"
+date: \cntoday
+print: no
+---
+
+## 基金净值
+
+<!------------------      Laoding Packges  ----------------------------------->                   
+```{r warning=FALSE, echo=FALSE, message=FALSE}
+## -----------------------------------------------------------------------------
+## Backing Testing Programming
+## This Version: 0.1
+## Author: William Fang
+## -----------------------------------------------------------------------------
+## STEP #1 ===>>: laoding packages
+## -----------------------------------------------------------------------------
+rm(list = ls())
+library(plyr)                 ## data manipulation
+library(dplyr)
+library(readxl)               ## reading excel file
+library(readr)                ## reading csv file
+library(openxlsx)             ## writing excel file
+library(magrittr)             ## to use pipe algorithms, %>%
+library(PerformanceAnalytics) ## perfomance analysis
+library(ggplot2)              ## PLotting
+library(ggthemes)
+library(data.table)
+library(formattable)
+## -----------------------------------------------------------------------------
+ht <- function(x){ 
+  cat("\n")
+  cat("Head:------------------------------------------------------------", "\n")
+  print(head(x, 10))
+  cat("\n")
+  cat("Tail:------------------------------------------------------------", "\n")
+  print(tail(x, 10))
+}
+```
+<!------------------      Path Settings  ----------------------------------->
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+setwd("D:/汉云投资/林焕耿")
+setwd("按照 exchange_date 来计算")
+file_name <- "YDP_all"
+summary_about <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 3)
+summary_return <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 4) %>%
+  as.data.frame()
+
+net_return <- summary_return[3,2] %>% gsub("%", "", .) %>% as.numeric()/100
+car <- summary_return[4,2] %>% as.numeric()
+
+summary_year <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 5) %>%
+  as.data.frame() %>% .[-nrow(.),]
+```
+
+\vspace{-0.1cm}
+\begin{center}
+\kai
+\arrayrulecolor{arrayrulecolor}
+\arrayrulewidth=1pt
+\renewcommand{\arraystretch}{1.1}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{1}{rowcolor}{}
+\begin{tabular}{N|A|A}
+  \rowcolor{.!50!black}
+  \arraycolor{white}\bfseries 项目 &
+  \arraycolor{white}\bfseries 回测开始&
+  \arraycolor{white}\bfseries 回测结束\\
+  日\hspace{2em}期 & `r summary_about[1,2]` & `r summary_about[2,2]` \\
+  资金规模 & `r formatC(summary_about[3,2], format="d", big.mark=',')` & `r formatC(summary_about[4,2], format="d", big.mark=',')`\\
+  总收益 & \multicolumn{2}{B}{\cellcolor{redup!95}\bfseries   `r sprintf("%.2f", net_return *100)`\%} \\
+  年化收益 & \multicolumn{2}{B}{\cellcolor{redup!95}\bfseries  `r sprintf("%.2f", car * 100)`\%} \\
+  
+\end{tabular}
+\end{center}
+
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+dataFile <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 1)
+str(dataFile)
+```
+
+```{r echo=FALSE, message=FALSE,fig.align='center',fig.width=6.35, fig.height=2.6}
+nav <- data.table(Date = as.POSIXct(dataFile$Date, format="%Y-%m-%d"),
+                  "Fund" = dataFile$NAV,
+                  "SH" = dataFile$NAV_SH_index,
+                  "HS300" = dataFile$NAV_HS300_index)
+meltdf <- melt(nav,id="Date")
+ggplot(meltdf,aes(x=Date,y=value,colour=variable,group=variable)) + geom_line() + theme_economist(dkpanel=TRUE) + scale_colour_economist() + ggtitle("Net Value") + scale_color_manual(values=c("red", "gray", "darkgray")) + theme(plot.title = element_text(size=10))
+```
+
+
+## 交易情况
+
+\begin{center}
+\footnotesize
+\kai
+\arrayrulecolor{bluesocib}
+\arrayrulewidth=1pt
+\renewcommand{\arraystretch}{1.2}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{1}{rowcolor}{}
+\begin{tabular}{NN|NB|NB|NB}
+
+%  \multicolumn{8}{D}{\large 统计数据}\\
+
+  交易次数 & `r summary_return[5,2]` & 
+  盈利总额 & \cellcolor{redup!95} `r formatC(as.numeric(summary_return[9,2]), format="d", big.mark=',')`   
+  & 单笔平均盈利 &  \cellcolor{redup!95} `r formatC(as.numeric(summary_return[12,2]), format="d", big.mark=',')` &
+  最大回撤额 & \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[19,2]), format="d", big.mark=',')`\\
+  
+  盈利次数 & \cellcolor{redup!95} `r summary_return[6,2]` & 
+  亏损总额 & \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[10,2]), format="d", big.mark=',')`   & 
+  单笔平均亏损 & \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[13,2]), format="d", big.mark=',')` &
+  最大回撤比 & \cellcolor{greendown!95} `r gsub("%","",summary_return[20,2])`\% \\
+  
+  胜率 & \cellcolor{redup!95} `r gsub("%","",summary_return[8,2])`\% & 
+  盈利比 & \cellcolor{redup!95}`r summary_return[11,2]` & 
+  赔率 & \cellcolor{redup!95}`r summary_return[14,2]` &
+  年化收益/最大回撤比 & \cellcolor{redup!95}`r summary_return[22,2]`\\
+
+\end{tabular}
+\end{center}
+\normalsize
+
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+dataFile <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 1)
+
+rtn1 <- diff(log(dataFile$Net_Value), lag = 1)
+rtn2 <- diff(log(dataFile$SH_index), lag = 1)
+rtn3 <- diff(log(dataFile$HS300_index), lag = 1)
+## data.frame(rtn1, rtn2, rtn3)
+dataFile$Date <- as.POSIXct(dataFile$Date, format="%Y-%m-%d") %>% as.Date(., format="%Y%m%d")
+x <- dataFile[-1,1]$Date
+rtn <- xts(data.frame(rtn1, rtn2, rtn3), order.by=x) ## 
+```
+
+
+
+```{r echo=FALSE, message=FALSE,fig.align='center', fig.height=2.6, fig.width=6.35}
+# charts.PerformanceSummary(rtn[, c("rtn1", "rtn2", "rtn3")], main="Draw Down")
+layout(c(1,2), heights=c(1.2,1.8), TRUE)
+par(mar=c(2, 2, 1, 1) + 0.1, bg = "#d5e4eb")
+chart.BarVaR(rtn[, c("rtn1")], main="Log Return", colorset="red", cex.axis = 0.5, cex.main=0.5)
+chart.Drawdown(rtn[, c("rtn1", "rtn2", "rtn3")], main="Draw Down", colorset=c("red", "gray", "darkgray"), cex.axis = 0.5, cex.main=0.5)
+```
+
+## 收益波动
+
+
+\begin{center}
+\kai
+\arrayrulecolor{bluesocib}
+\arrayrulewidth=1pt
+\renewcommand{\arraystretch}{1.2}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{1}{rowcolor}{}
+\begin{tabular}{NN|NN}
+
+%  \multicolumn{4}{D}{\large 统计数据}\\
+
+  单笔最大盈利金额 & \cellcolor{redup!95} `r formatC(as.numeric(summary_return[15,2]), format="d", big.mark=',')` &
+  单笔最大亏损金额 & \cellcolor{greendown!95} `r formatC(as.numeric(summary_return[17,2]), format="d", big.mark=',')`\\
+  
+  单笔最大盈利比例 & \cellcolor{redup!95} `r gsub("%","",summary_return[16,2])`\% & 
+  单笔最大亏损比例 & \cellcolor{greendown!95} `r gsub("%","",summary_return[18,2])`\% \\
+  
+  最大连续盈利次数 & \cellcolor{redup!95} `r summary_return[23,2]` & 
+  最大连续亏损次数 & \cellcolor{greendown!95} `r summary_return[24,2]` \\
+
+\end{tabular}
+\end{center}
+
+
+```{r echo=FALSE, message=FALSE,fig.align='center', fig.height=2.6, fig.width=6.35, fig.cap="相对指数的当日收益率波动"}
+layout(c(1,2), heights=c(1,1), TRUE)
+par(mar=c(2, 2, 1, 1) + 0.1, bg = "#d5e4eb")
+
+rtn_diff <- data.table("Fund_SH" = rtn1-rtn2,
+                       "Fund_HS300" = rtn1-rtn3) %>% xts(., order.by=dataFile[-1,1]$Date)
+
+chart.BarVaR(rtn_diff[, c("Fund_SH")], main="Fund - SH.index", colorset="red", cex.axis = 0.5, cex.main=0.5)
+chart.BarVaR(rtn_diff[, c("Fund_HS300")], main="Fund - HS300.index", colorset="brown", cex.axis = 0.5, cex.main=0.5)
+```
+
+
+## 收益分布情况
+
+```{r echo=FALSE, message=FALSE,fig.align='center', fig.height=2.6, fig.width=6.35}
+layout(matrix(c(1,1,2,3), 2, 2, byrow = TRUE))
+par(mar=c(2, 2, 1, 1) + 0.1, bg = "#d5e4eb")
+chart.Histogram(rtn1, methods = c("add.density", "add.normal"),main="Fund")
+abline(v=0, col="red")
+chart.Histogram(rtn2, methods = c("add.density", "add.normal"),main="SH.index")
+abline(v=0, col="red")
+chart.Histogram(rtn3, methods = c("add.density", "add.normal"),main="HS300.index")
+abline(v=0, col="red")
+```
+
+
+
+## 按年份统计
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE}
+# knitr::kable
+library(stargazer)
+library(xtable)
+xtable(summary_year)
+xtable(summary_year)
+```
+
+\setlength{\tabcolsep}{12pt}
+\begin{center}
+\kai
+\arrayrulecolor{bluesocib}
+\arrayrulewidth=1pt
+\renewcommand{\arraystretch}{1.4}
+%% 去掉各行显示颜色
+\rowcolors[\hline]{3}{rowcolor}{}
+
+\begin{tabular}{rcrrr}
+
+\multicolumn{5}{D}{\large 不同年份的收益情况}\\
+
+ & 年份 & 收益率 & 最大回撤 & 收益率/最大回撤 \\ 
+  
+1 & 2006 & \cellcolor{redup!75}52.71\% & 6.94\% & 7.59 \\ 
+  2 & 2007 & \cellcolor{redup!99}142.56\% & 11.50\% & 12.40 \\ 
+  3 & 2008 & \cellcolor{greendown!95}-11.77\% & 27.27\% & -0.43 \\ 
+  4 & 2009 & \cellcolor{redup!65}39.84\% & 20.65\% & 1.93 \\ 
+  5 & 2010 & \cellcolor{redup!25}4.28\% & 7.52\% & 0.57 \\ 
+  6 & 2011 & \cellcolor{redup!25}4.93\% & 9.73\% & 0.51 \\ 
+  7 & 2012 & \cellcolor{redup!65}39.89\% & 8.75\% & 4.56 \\ 
+  8 & 2013 & \cellcolor{redup!40}15.16\% & 2.57\% & 5.89 \\ 
+  9 & 2014 & \cellcolor{redup!25}8.32\% & 5.05\% & 1.65 \\ 
+  10 & 2015 & \cellcolor{redup!95}88.16\% & 14.21\% & 6.20 \\ 
+  11 & 2016 & \cellcolor{greendown!95}-8.18\% & 24.27\% & -0.34 \\ 
+   
+\end{tabular}
+\end{center}
+\setlength{\tabcolsep}{12pt}
+
+## 交易分布统计
+
+```{r warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+## 持仓周期统计
+holdingDays_dis <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 6) %>% as.data.frame()
+
+## 交易盈亏分布
+DD <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 7) %>% as.data.frame()
+
+## 连续盈利分布
+continuous_positive <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 8) %>% as.data.frame()
+
+## 连续亏损分布
+continuous_negative <- read_excel(paste0(file_name, "_data_回测指标", ".xlsx"), sheet = 9) %>% as.data.frame()
+```
+
+\begin{center}
+\begin{figure}
+\includegraphics[width=14cm]{ydp.png}
+\caption{YDP 基金产品组合}
+\end{figure}
+\end{center}
+
+
+

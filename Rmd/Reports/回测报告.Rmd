@@ -1,0 +1,47 @@
+---
+title: "回测报告"
+author: "方莲"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: cayman
+    highlight: github
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# 基本设定
+
+```{r warning=FALSE,message=FALSE,echo=FALSE,results='hide'}
+source('D:/汉云投资/R_Coding/loading_packages.R', encoding = 'UTF-8', echo=TRUE)
+source('D:/汉云投资/R_Coding/loading_functions.R', encoding = 'UTF-8', echo=TRUE)
+library(ezknitr)
+```
+
+```{r warning=FALSE,message=FALSE,echo=FALSE,results='hide'}
+file_name_main <- "DC6017c"
+# file_name_sub <- "adj_hl"
+if(exists('file_name_sub')){
+  file_name <- paste(file_name_main,file_name_sub, sep="_")
+}else{
+  file_name <- file_name_main
+}
+setwd(paste0("D:/汉云投资/林焕耿/", file_name_main)) 
+```
+
+```{r warning=FALSE,message=FALSE,echo=TRUE,results='markup'}
+#! 初始资金设定为：
+initial_capital <- 50000000
+
+#! 交易手续费设定为:
+fee <- 0.002
+
+#! 回测数据来源
+file_name
+
+data.file <- read_excel(paste0(file_name,"_回测结果", ".xlsx")) %>% as.data.table()
+
+```
