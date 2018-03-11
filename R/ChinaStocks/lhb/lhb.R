@@ -258,16 +258,165 @@ lhbName_sse <- dt_sse[,unique(lhbName)]
 # [31] "*ST博元风险警示期交易信息"    
 
 
+## =============================================================================
+DATA_SOURCE <- 'FromExch'
+## =============================================================================
 allDirs <- list.files(paste0(DATA_PATH, '/', DATA_SOURCE), full.name = T)
 d <- allDirs[10]
 allFiles <- list.files(d, full.names = T)
 
 szseFiles <- grep('szse.*\\.txt', allFiles, value = T)
 
-dataFile <- "/home/fl/myData/data/ChinaStocks/LHB/FromExch/2012/2012-12-28_szse_30.txt"
-f <- readLines(file(dataFile, encoding = 'GB18030'))
+parse_szse_file <- function(dataFile) {
+
+    # dataFile <- "/home/fl/myData/data/ChinaStocks/LHB/FromExch/2012/2012-12-28_szse_30.txt"
+
+    tradingDay <- gsub(".*([0-9]{4}-[0-9]{2}-[0-9]{2}).*", "\\1", dataFile)
+
+    ## 2006-07-01 之前的数据就不要用了
+    ## 没有买入、卖出的金额
+    if (tradingDay < '2006-07-01') return(data.table())
+
+    if (class(try(
+            f <- readLines(file(dataFile, encoding = 'GB18030')) %>% 
+                .[grep('证券(:|：)|详细信息', .)[1] : length(.)]
+        )) == 'try-error') {
+        return(data.table())
+    }
+
+    sp_line <- grep('证券(:|：)|[-]{5,}', f) %>% c(., length(f))
+
+    dt <- lapply(2:length(sp_line), function(kk){
+        # print(kk)
+
+        tmp <- f[sp_line[kk - 1] : (sp_line[kk] - 1)]
+
+        if (length(tmp) < 5) return(data.table())
+
+        lhbName <- grep('证券(:|：)', tmp) 
+        if (lhbName != 1) {
+            if (nchar(tmp[lhbName - 1]) != 0) {
+                lhbName <- paste0(tmp[lhbName - 1], tmp[lhbName])
+            } else {
+                lhbName <- tmp[lhbName]
+            }
+        } else {
+            lhbName <- tmp[lhbName]
+        }
+        lhbName <- gsub(":|：", '', lhbName)
+
+        if (identical(lhbName, character(0))) return(data.table())
+        if (grepl('无$', lhbName)) return(data.table())
+
+        sp_stock <- grep('代码(:|：| |)[0-9]{6}', tmp) %>% c(., length(tmp))
+
+        res <- lapply(2:length(sp_stock), function(ss){
+            # ss <- 2
+            allInfo <- tmp[sp_stock[ss - 1] : (sp_stock[ss] - 1)]
+
+            stockInfo <- grep('代码(:|：| |)[0-9]{6}', allInfo, value = T) %>% 
+                strsplit(., '\\)') %>% 
+                unlist() %>% 
+                .[1] %>%
+                strsplit(., '\\(|\\)') %>% 
+                unlist()
+            stockName <- grep('\\d', stockInfo, value = T, invert = T)
+            stockID <- grep('\\d', stockInfo, value = T) %>% 
+                gsub('\\D', '', .)
+
+            buy <- allInfo[grep('买入金额最大', allInfo) : (grep('卖出金额最大', allInfo) - 1)] %>% 
+                .[(grep('营业部或', .) + 1) : length(.)] %>% 
+                .[nchar(.) != 0]
+            buyInfo <- lapply(buy, function(b){
+                u <- strsplit(b, ' ') %>% 
+                    unlist() %>% 
+                    grep('\\S', ., value = T)
+                data.table(DeptName = u[1],
+                           buyAmount = u[2],
+                           sellAmount = u[3])
+            }) %>% rbindlist()
+
+            sell <- allInfo[grep('卖出金额最大', allInfo) : length(allInfo)] %>% 
+                .[(grep('营业部或', .) + 1) : length(.)] %>% 
+                .[nchar(.) != 0]
+            sellInfo <- lapply(sell, function(s){
+                u <- strsplit(s, ' ') %>% 
+                    unlist() %>% 
+                    grep('\\S', ., value = T)
+                data.table(DeptName = u[1],
+                           buyAmount = u[2],
+                           sellAmount = u[3])
+            }) %>% rbindlist()
+
+            res <- list(buyInfo, sellInfo) %>% rbindlist() %>% 
+                .[, ":="(
+                    stockID = stockID,
+                    stockName = stockName,
+                    lhbName = lhbName
+                    )]
+        }) %>% rbindlist()
+
+    }) %>% rbindlist()
+
+    if (nrow(dt) != 0) dt[, TradingDay := tradingDay]
+
+    return(dt)
+}
 
 
+cl <- makeCluster(6, type = 'FORK')
+dt_szse <- parLapply(cl, allDirs, function(d){
+    allFiles <- list.files(d, full.names = T)
 
+    szseFiles <- grep('szse_.*\\.txt', allFiles, value = T)
 
+    ## -----------------------------------------------
+    # lapply(szseFiles, function(f){
+    #     if (class(try(
+    #         res <- parse_szse_file(f)
+    #         )) == 'try-error') {
+    #         print(d)
+    #         print(f)
+    #         stop('error')
+    #     } else {
+    #         res <- data.table()
+    #     }
+    # })
+
+    # return(res)
+    ## -----------------------------------------------
+
+    lapply(szseFiles, parse_szse_file) %>% rbindlist()
+}) %>% rbindlist()
+stopCluster(cl)
+
+lhbName_szse <- dt_szse[,unique(lhbName)]
+
+#  [1] "日涨幅偏离值达到7%的前三只证券"                                             
+#  [2] "日振幅值达到15%的前三只证券"                                                
+#  [3] "无价格涨跌幅限制的证券"                                                     
+#  [4] "连续三个交易日内，涨幅偏离值累计达到20%的证券"                              
+#  [5] "日跌幅偏离值达到7%的前三只证券"                                             
+#  [6] "日换手率达到20%的前三只证券"                                                
+#  [7] "连续三个交易日内，跌幅偏离值累计达到20%的证券"                              
+#  [8] "连续三个交易日内，涨幅偏离值累计达到15%的ST证券"                            
+#  [9] "连续三个交易日内，涨幅偏离值累计达到15%的ST和*ST证券"                       
+# [10] "连续三个交易日内，跌幅偏离值累计达到15%的ST和*ST证券"                       
+# [11] "连续三个交易日内，跌幅偏离值累计达到15%的ST证券、*ST证券和未完成股改证券"   
+# [12] "连续三个交易日内，涨幅偏离值累计达到15%的ST证券、*ST证券和未完成股改证券"   
+# [13] "连续三个交易日收盘价达到涨幅限制价格的ST证券、*ST证券和未完成股改证券"      
+# [14] "连续三个交易日收盘价达到跌幅限制价格的ST证券、*ST证券和未完成股改证券"      
+# [15] "日均换手率与前五个交易日的日均换手率的比值达到30倍，且换手率累计达20%的证券"
+# [16] "连续三个交易日收盘价达到跌幅限制价格的ST证券、*ST证券"                      
+# [17] "连续三个交易日收盘价达到涨幅限制价格的ST证券、*ST证券"                      
+# [18] "连续三个交易日内，涨幅偏离值累计达到15%的ST证券、*ST证券"                   
+# [19] "连续三个交易日内，跌幅偏离值累计达到15%的ST证券、*ST证券"                   
+# [20] "日涨幅偏离值达到7%的前五只证券"                                             
+# [21] "日跌幅偏离值达到7%的前五只证券"                                             
+# [22] "日振幅值达到15%的前五只证券"                                                
+# [23] "日换手率达到20%的前五只证券"                                                
+# [24] "连续三个交易日内，涨幅偏离值累计达到12%的ST证券、*ST证券和未完成股改证券"   
+# [25] "连续三个交易日内，跌幅偏离值累计达到12%的ST证券、*ST证券和未完成股改证券"   
+# [26] "连续三个交易日内，跌幅偏离值累计达到12%的ST证券、*ST证券"                   
+# [27] "连续三个交易日内，涨幅偏离值累计达到12%的ST证券、*ST证券"       
 
