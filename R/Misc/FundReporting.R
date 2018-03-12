@@ -36,7 +36,7 @@ currTradingDay <- ChinaFuturesCalendar[days <= format(Sys.Date(), '%Y%m%d')][nig
 #                           accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号', '汉峰云鼎')
 #                           )
 accountInfo <- data.table(accountID = c('TianMi1','TianMi2','TianMi3','YunYang1'),
-                          accountCapital = c(4000000, 1300000,1000000, 2000000, 8000000),
+                          accountCapital = c(4000000, 1300000,1000000, 2000000),
                           accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号')
                           )
 logPath <- "/home/fl/myData/log/FundReporting"
@@ -63,7 +63,7 @@ fetchFund <- function(i, author = FALSE) {
   if (nrow(fee) != 0) {
     for (j in 1:nrow(fee)) {
       tempTradingDay <- fee[j, TradingDay]
-      reportAccount[TradingDay >= tempTradingDay, 
+      reportAccount[TradingDay >= tempTradingDay,
             totalMoney := totalMoney + fee[TradingDay == tempTradingDay, sum(Amount)]]
     }
   }
@@ -166,14 +166,17 @@ fetchFund <- function(i, author = FALSE) {
     print(positionInfo)
     cat('\n')
   }
-  if (nrow(tradingInfo) != 0) {
-    write.table("## -------------------------------------- ##", tempFile
-                , append = TRUE, col.names = FALSE, row.names = FALSE)
-    cat("## 今日交易记录 ##")
-    cat('\n')
-    print(tradingInfo)
-    cat('\n')
-  }
+
+  ## ===========================================================================
+  ## 不看交易记录
+  # if (nrow(tradingInfo) != 0) {
+  #   write.table("## -------------------------------------- ##", tempFile
+  #               , append = TRUE, col.names = FALSE, row.names = FALSE)
+  #   cat("## 今日交易记录 ##")
+  #   cat('\n')
+  #   print(tradingInfo)
+  #   cat('\n')
+  # }
   cat("## ----------------------------------- ##\n")
   ## ===========================================================================
   if (author) {
