@@ -2,8 +2,10 @@
 ## lhb.R
 ## dfsdfsdf 
 ## 
-## DATE     : 2018-03-05
 ## AUTHOR   : fl@hicloud-investment.com
+## DATE     : 2018-03-05
+## MODIFIED : 2018-03-13
+## 
 ## =============================================================================
 
 source("/home/fl/myData/R/Rconfig/myInit.R")
@@ -23,8 +25,19 @@ dt_sina <- lapply(allDirs, function(d){
         tmp[, TradingDay := gsub('.*([0-9]{4}-[0-9]{2}-[0-9]{2}).*', '\\1', f)]
     }) %>% rbindlist()
 }) %>% rbindlist()
+colnames(dt_sina) <- c('stockID','stockName','lhbName',
+                       'DeptName','buyAmount','sellAmount',
+                       'netAmount','TradingDay')
+lhbName_sina <- dt_sina[,unique(lhbName)]
 
-lhbName_sina <- dt_sina[,unique(上榜原因)]
+dt_sina[, stockName := gsub(' ', '', stockName)]
+dt_sina[, stockName := gsub('Ａ', 'A', stockName)]
+dt_sina[, stockName := gsub("Ｂ", "B", stockName)]
+mysqlWrite(db = 'china_stocks', tbl = 'lhb_from_sina',
+           data = dt_sina, isTruncated = T)
+## =============================================================================
+
+
 
 ## =============================================================================
 DATA_SOURCE <- 'FromEastmoney'
@@ -38,15 +51,25 @@ dt_eastmoney <- lapply(allDirs, function(d){
         tmp[, TradingDay := gsub('.*([0-9]{4}-[0-9]{2}-[0-9]{2}).*', '\\1', f)]
     }) %>% rbindlist()
 }) %>% rbindlist()
+colnames(dt_eastmoney) <- c('stockID','stockName','lhbName',
+                       'DeptName','buyAmount','sellAmount',
+                       'netAmount','TradingDay')
+lhbName_eastmoney <- dt_eastmoney[,unique(lhbName)]
 
-lhbName_eastmoney <- dt_eastmoney[,unique(上榜原因)]
+dt_eastmoney[, stockName := gsub(' ', '', stockName)]
+dt_eastmoney[, stockName := gsub('Ａ', 'A', stockName)]
+dt_eastmoney[, stockName := gsub("Ｂ", "B", stockName)]
+mysqlWrite(db = 'china_stocks', tbl = 'lhb_from_eastmoney',
+           data = dt_eastmoney, isTruncated = T)
+## =============================================================================
+
 
 
 ## =============================================================================
 DATA_SOURCE <- 'FromExch'
 ## =============================================================================
 allDirs <- list.files(paste0(DATA_PATH, '/', DATA_SOURCE), full.name = T)
-d <- allDirs[10]
+d <- allDirs[4]
 allFiles <- list.files(d, full.names = T)
 
 sseFiles <- grep('sse\\.txt', allFiles, value = T)
@@ -70,7 +93,7 @@ parse_sse_file <- function(dataFile) {
 
     sp_rm <- c()
     for (s in sp_new) {
-        print(s)
+        # print(s)
         if (nchar(f[s+1]) == 0) {
             f[s] <- paste0(f[s], f[s+1], f[s+2]) %>% 
                 gsub("\"| ", '', .)
@@ -125,11 +148,16 @@ parse_sse_file <- function(dataFile) {
                 .[!is.na(.)]
 
             stockInfo <- grep('证券代码: [0-9]{6}', allInfo, value = T) %>%
-                strsplit(., ' ') %>% 
+                strsplit(., '          ') %>% 
                 unlist() %>% 
-                .[nchar(.) != 0]
-            stockID <- grep('[0-9]{6}', stockInfo, value = T)
-            stockName <- grep('[0-9]{6}|简称|代码', stockInfo, value = T, invert = T)
+                .[nchar(.) != 0] %>% 
+                gsub(' ', '', .)
+            stockID <- grep('[0-9]{6}', stockInfo, value = T) %>% 
+                gsub('\\D', '', .)
+            stockName <- grep('[0-9]{6}', stockInfo, value = T, invert = T) %>% 
+                strsplit(., ':|：') %>% 
+                unlist() %>% 
+                grep('简称', ., value = T, invert = T)
 
             if (any(grep('买入', allInfo))) {
                 if (!any(grepl('卖出', allInfo))) {
@@ -197,7 +225,7 @@ parse_sse_file <- function(dataFile) {
     return(dt)
 }
 
-cl <- makeCluster(16, type = 'FORK')
+cl <- makeCluster(8, type = 'FORK')
 dt_sse <- parLapply(cl, allDirs, function(d){
     allFiles <- list.files(d, full.names = T)
 
@@ -224,6 +252,15 @@ dt_sse <- parLapply(cl, allDirs, function(d){
 stopCluster(cl)
 
 lhbName_sse <- dt_sse[,unique(lhbName)]
+
+dt_sse[, stockName := gsub(' ', '', stockName)]
+dt_sse[, stockName := gsub('Ａ', 'A', stockName)]
+dt_sse[, stockName := gsub("Ｂ", "B", stockName)]
+dt_sse[is.na(buyAmount), netAmount := -as.numeric(sellAmount)]
+dt_sse[is.na(sellAmount), netAmount := as.numeric(buyAmount)]
+
+mysqlWrite(db = 'china_stocks', tbl = 'lhb_from_exch',
+           data = dt_sse, isTruncated = T)
 
 #  [1] "有价格涨跌幅限制的日收盘价格涨幅偏离值达到7%的前三只证券"                                                                                         
 #  [2] "有价格涨跌幅限制的日收盘价格跌幅偏离值达到7%的前三只证券"                                                                                         
@@ -258,11 +295,14 @@ lhbName_sse <- dt_sse[,unique(lhbName)]
 # [31] "*ST博元风险警示期交易信息"    
 
 
+
+
+
 ## =============================================================================
 DATA_SOURCE <- 'FromExch'
 ## =============================================================================
 allDirs <- list.files(paste0(DATA_PATH, '/', DATA_SOURCE), full.name = T)
-d <- allDirs[10]
+d <- allDirs[4]
 allFiles <- list.files(d, full.names = T)
 
 szseFiles <- grep('szse.*\\.txt', allFiles, value = T)
@@ -390,7 +430,17 @@ dt_szse <- parLapply(cl, allDirs, function(d){
 }) %>% rbindlist()
 stopCluster(cl)
 
+
 lhbName_szse <- dt_szse[,unique(lhbName)]
+
+dt_szse[, stockName := gsub(' ', '', stockName)]
+dt_szse[, stockName := gsub('Ａ', 'A', stockName)]
+dt_szse[, stockName := gsub("Ｂ", "B", stockName)]
+
+mysqlWrite(db = 'china_stocks', tbl = 'lhb_from_exch',
+           data = dt_szse, isTruncated = F)
+
+
 
 #  [1] "日涨幅偏离值达到7%的前三只证券"                                             
 #  [2] "日振幅值达到15%的前三只证券"                                                
