@@ -33,11 +33,13 @@ URL <- "http://market.finance.sina.com.cn/downxls.php"
 
 ipTables <- suppressMessages({
     suppressMessages({
-        fetchIp(20)
+        fetchIp(50)
     })
 })
 ipUseful <- FALSE
 
+
+ChinaStocksCalendar <- ChinaStocksCalendar[days >= '2010-01-01']
 
 while (TRUE) {
 for (d in 1:nrow(ChinaStocksCalendar)) {
@@ -56,24 +58,27 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
   ## ---------------------------------------------------------------------------
   # print(paste(tradingDay, ':==>', allStocks[i, stockID]))
   if (nrow(ipTables) == 0) {
-      ipTables <- fetchIp(2)
+      ipTables <- fetchIp(10)
       Sys.sleep(1)
   }
-  ipTables <- ipTables[tryNo < 5]
-  if (!ipUseful) ip <- ipTables[sample(1:nrow(ipTables),1)]
+  ipTables <- ipTables[tryNo < 500]
   ## ---------------------------------------------------------------------------
 
   ## ===========================================================================
   for (i in 1:nrow(allStocks)) {
 
     if (nrow(ipTables) == 0) {
-        ipTables <- fetchIp(2)
+        ipTables <- fetchIp(10)
         Sys.sleep(1)
     }
+
+    if (!ipUseful) ip <- ipTables[sample(1:nrow(ipTables),1)]
     # i <- 1
     tryNo <- 0
 
-    while (tryNo < 5) {
+    while (tryNo < 3) {
+      if (!ipUseful) ip <- ipTables[sample(1:nrow(ipTables),1)]
+
       tryNo <- tryNo + 1
       stockID <- allStocks[i, stockID]
       listingDate <- allStocks[i, listingDate]
@@ -81,10 +86,15 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
 
       destFile <- paste0(DATA_PATH, '/', stockID, '.csv')
       if (file.exists(destFile)) {
-        l <- readLines(file(destFile, encoding = 'GB18030'))
-        if (!any(grepl('html|javascript|alert|Unauthorized|当天没有数据|无效用户|rtn|msg', l)) |
-               grepl("成交时间", l[1])) {
-          print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', tradingDay, ':==>', allStocks[i, stockID], '已经下载'))
+        if (class(try(
+            l <- readLines(file(destFile, encoding = 'GB18030'))
+          )) == 'try-error') break
+
+        if ((!any(grepl('html|javascript|alert|Unauthorized|当天没有数据|无效用户|rtn|msg', l)) &
+               grepl("成交时间", l[1])) & length(l) > 5) {
+          print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', 
+                      tradingDay, ':==>', allStocks[i, stockID], '已经下载'))
+          # print(l)
           break
           # next
         } else {
@@ -98,22 +108,23 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
           r <- GET(URL, query = list(date = tradingDay,
                                      symbol = allStocks[i, paste0(exchID, stockID)]),
                         use_proxy(ip[1, url], ip[1, port]),
-                        timeout(10))
+                        timeout(5))
           )) == 'try-error') {
         ipTables[url == ip[1,url], tryNo := tryNo + 1]
         # ## -----------------------------------------------------------------------
         temp <- ipTables[url == ip[1,url]]
         if (nrow(temp) != 0) {
-            ipTables <- ipTables[tryNo < 15]
+            ipTables <- ipTables[tryNo < 500]
         }
         if (nrow(ipTables) == 0) {
-            ipTables <- fetchIp(2)
+            ipTables <- fetchIp(10)
             Sys.sleep(1)
         }
         ip <- ipTables[sample(1:nrow(ipTables),1)]
         ipUseful <- FALSE
         ## -----------------------------------------------------------------------
-        print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', tradingDay, ':==>', allStocks[i, stockID], '下载失败'))
+        print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', 
+                    tradingDay, ':==>', allStocks[i, stockID], '下载失败'))
       } else {
         ## -------------------------------------------------------------------------
         temp <- suppressMessages(content(r,'text'))
@@ -124,10 +135,16 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
               })
             })
 
-            l <- readLines(file(destFile, encoding = 'GB18030'))
-            if (!any(grepl('html|javascript|alert|Unauthorized|当天没有数据|无效用户|rtn|msg', l)) |
-               grepl("成交时间", l[1])) {
-                print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', tradingDay, ':==>', allStocks[i, stockID], '下载成功'))
+            if (class(try(
+                l <- readLines(file(destFile, encoding = 'GB18030'))
+              )) == 'try-error') break
+
+            if ((!any(grepl('html|javascript|alert|Unauthorized|当天没有数据|无效用户|rtn|msg', l)) &
+               grepl("成交时间", l[1])) & length(l) > 5) {
+                print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', 
+                            tradingDay, ':==>', allStocks[i, stockID], '下载成功'))
+                # print(l)
+                # Sys.sleep(1)
                 ipUseful <- TRUE
                   break
                   # next
@@ -136,25 +153,34 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
                 # ## -----------------------------------------------------------------------
                 temp <- ipTables[url == ip[1,url]]
                 if (nrow(temp) != 0) {
-                    ipTables <- ipTables[tryNo < 15]
+                    ipTables <- ipTables[tryNo < 500]
                 }
                 if (nrow(ipTables) == 0) {
-                    ipTables <- fetchIp(2)
+                    ipTables <- fetchIp(10)
                     Sys.sleep(1)
                 }
                 ip <- ipTables[sample(1:nrow(ipTables),1)]
                 ipUseful <- FALSE
 
-                print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', tradingDay, ':==>', allStocks[i, stockID], '无效数据'))
+                print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', 
+                            tradingDay, ':==>', allStocks[i, stockID], '无效数据'))
                 # system(paste("rm -f", destFile))
                 file.remove(destFile)
+
+                if (any(grepl('当天没有数据', l))) {
+                  print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', 
+                            tradingDay, ':==>', allStocks[i, stockID], '当天没有数据'))
+                  break
+                }
             }
 
           } else {
             if (grepl('新浪安全部门', temp)) {
-              ipTables[url == ip[1,url], tryNo := tryNo + 1]
+              ipTables[url == ip[1,url], tryNo := tryNo + .5]
               ipUseful <- FALSE
-              next
+              print(paste(format(Sys.time(), "%Y-%m-%d %H:%M:%S"), ':==>', "等待新浪解禁"))
+              Sys.sleep(1)
+              break
             }
           }
         ## -------------------------------------------------------------------------
@@ -163,4 +189,5 @@ for (d in 1:nrow(ChinaStocksCalendar)) {
     }
   }
   ## ===========================================================================
-}}
+}
+}
