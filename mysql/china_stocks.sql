@@ -235,3 +235,54 @@ ON china_stocks.report_from_jrj
 ## -------------------------------------------------------------------------- ## 
 
 
+
+################################################################################
+## china_stocks.lhb_from_sina
+################################################################################
+CREATE TABLE  china_stocks.lhb_from_sina(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
+    #------------------------------------------------------
+    lhbName         TEXT(1000),                         ## 龙虎榜名称
+    DeptName        VARCHAR(100),                       ## 营业部名称
+    buyAmount       DECIMAL(30,3),                      ## 买入金额（元）
+    sellAmount      DECIMAL(30,3),                      ## 卖出金额（元）
+    netAmount       DECIMAL(30,3)                       ## 净额（元）
+    #-----------------------------------------------------
+    );
+
+
+################################################################################
+## china_stocks.lhb_from_exch
+################################################################################
+CREATE TABLE  china_stocks.lhb_from_exch(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
+    #------------------------------------------------------
+    lhbName         TEXT(1000),                         ## 龙虎榜名称
+    DeptName        VARCHAR(100),                       ## 营业部名称
+    buyAmount       DECIMAL(30,3),                      ## 买入金额（元）
+    sellAmount      DECIMAL(30,3),                      ## 卖出金额（元）
+    netAmount       DECIMAL(30,3)                       ## 净额（元）
+    #-----------------------------------------------------
+    );
+
+
+
+################################################################################
+## china_stocks.lhb_from_eastmoney
+################################################################################
+CREATE TABLE  china_stocks.lhb_from_eastmoney(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
+    #------------------------------------------------------
+    lhbName         TEXT(1000),                         ## 龙虎榜名称
+    DeptName        VARCHAR(100),                       ## 营业部名称
+    buyAmount       DECIMAL(30,3),                      ## 买入金额（元）
+    sellAmount      DECIMAL(30,3),                      ## 卖出金额（元）
+    netAmount       DECIMAL(30,3)                       ## 净额（元）
+    #-----------------------------------------------------
+    );
