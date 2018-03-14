@@ -96,6 +96,44 @@ headers_181 <- c(
   "Upgrade-Insecure-Requests" = "1",
   "User-Agent"                = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3298.3 Safari/537.36"
 )
+
+header_data5u <- c(
+'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+'Accept-Encoding' = 'gzip, deflate',
+'Accept-Language' = 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6',
+'Cache-Control' = 'max-age=0',
+'Connection' = 'keep-alive',
+'DNT' = '1',
+'Host' = 'www.data5u.com',
+'Referer' = 'http://www.data5u.com/free/gngn/index.shtml',
+'Upgrade-Insecure-Requests' = '1',
+'User-Agent' = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3298.3 Safari/537.36'
+    )
+
+headers_feilongip <- c(
+'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+'Accept-Encoding' = 'gzip, deflate',
+'Accept-Language' = 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6',
+'Cache-Control' = 'max-age=0',
+'Connection' = 'keep-alive',
+'DNT' = '1',
+'Host' = 'www.feilongip.com',
+'Referer' = 'https://www.google.com/',
+'Upgrade-Insecure-Requests' = '1',
+'User-Agent' = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3298.3 Safari/537.36')
+
+
+headers_66ip_main <- c(
+'Accept' = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+'Accept-Encoding' = 'gzip, deflate',
+'Accept-Language' = 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6',
+'Connection' = 'keep-alive',
+'DNT' = '1',
+'Host' = 'www.66ip.cn',
+'Referer' = 'http://www.66ip.cn/26.html',
+'Upgrade-Insecure-Requests' = '1',
+'User-Agent' = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/65.0.3298.3 Safari/537.36')
+
 ## =============================================================================
 
 ## =============================================================================
@@ -214,6 +252,31 @@ fetchIp <- function(x) {
   } else {
     ipTables_66 <- data.table()
   }
+
+  ipTables_66ip_main <- lapply(1:x, function(i){
+      if (i < 3) return(data.table())
+      url_66ip_main <- paste0("http://www.66ip.cn/", i, ".html")
+
+      if (class(try(
+                    r <- GET(url_66ip_main, add_headers(headers_66ip_main), timeout(10))
+          )) != 'try-error') {
+          p <- content(r, as = 'text', encoding = 'GB18030')
+          w <- p %>% 
+              read_html() %>% 
+              html_nodes('table') %>% 
+              html_table() %>% 
+              .[[3]] %>% 
+              as.data.table()
+          colnames(w) <- paste0('X', 1:ncol(w))
+          w <- w[grepl('\\d', X1)]
+          res <- w[, .(url = X1, port = X2)]
+      } else {
+          res <- data.table()
+      }
+
+      return(res)
+  }) %>% rbindlist()
+
   ## ===========================================================================
 
   ## ===========================================================================
@@ -276,17 +339,78 @@ fetchIp <- function(x) {
 
   ipTables_ip3366 <- lapply(1:x, function(i){
     url <- paste0("http://www.ip3366.net/free/?page=", i)
-    res <- url %>%
-      read_html() %>%
-      html_nodes('table') %>%
-      html_table(fill = T) %>%
-      .[[1]] %>%
-      as.data.table() %>%
-      .[, .(url = IP, port = PORT)]
+    if (class(try(
+        res <- url %>%
+          read_html() %>%
+          html_nodes('table') %>%
+          html_table(fill = T) %>%
+          .[[1]] %>%
+          as.data.table() %>%
+          .[, .(url = IP, port = PORT)]
+      )) == 'try-error') {
+      res <- data.table()
+    }
     Sys.sleep(1)
     return(res)
   }) %>% rbindlist()
 
+  ## ===========================================================================
+  url_data5u <- "http://www.data5u.com/free/index.shtml"
+
+  if (class(try(
+                r <- GET(url_data5u, add_headers(header_data5u), timeout(5))
+      )) != 'try-error') {
+      p <- content(r, 'text')
+      w <- p %>% 
+          read_html() %>% 
+          html_nodes('li') %>% 
+          html_text() %>% 
+          .[nchar(.) > 100] %>% 
+          strsplit(., "\r\n\t\t[ ]{1,}\r\n\t\t") %>% 
+          unlist()
+      if (length(w) < 2) ipTables_data5u <- data.table()
+
+      ipTables_data5u <- lapply(2:length(w), function(i){
+              tmp <- w[i] %>% 
+                  strsplit(., '\r|\n|\t') %>% 
+                  unlist() %>% 
+                  .[nchar(.) >= 2] %>% 
+                  gsub(' ', '', .)
+              res <- data.table(url = tmp[1],
+                                port = tmp[2])
+          }) %>% rbindlist() %>% 
+          .[!is.na(port)]
+  } else {
+      ipTables_data5u <- data.table()
+  }
+  ## ===========================================================================
+
+  ## ===========================================================================
+  url_feilongip <- "http://www.feilongip.com/"
+
+  if (class(try(
+                r <- GET(url_feilongip, add_headers(headers_feilongip), timeout(30))
+      )) != 'try-error') {
+      p <- content(r, 'text')
+      w <- p %>% 
+          read_html() %>% 
+          html_nodes('table') %>% 
+          html_table() %>% 
+          .[[1]] %>% 
+          as.data.table()
+      colnames(w) <- paste0('X', 1:ncol(w))
+      ipTables_feilongip <- data.table(url = rep('', nrow(w)), 
+                                       port = rep('', nrow(w)))
+      for (ii in 1:nrow(w)) {
+          tmp <- w[ii, X2] %>% 
+              strsplit(., ':|：') %>% 
+              unlist()
+          ipTables_feilongip[ii, ":="(url = tmp[1], port = tmp[2])]
+      }
+  } else {
+      ipTables_feilongip <- data.table()
+  }
+  ## ===========================================================================
 
   # url <- "http://www.ip3366.net/"
   # if (class(try(r <- GET(url,timeout(10)))) != 'try-error') {
@@ -327,7 +451,10 @@ fetchIp <- function(x) {
                    ,ipTables_crossincode
                    ,ipTables_66
                    ,ipTables_181
-                   ,ipTables_ip3366) %>%
+                   ,ipTables_ip3366
+                   ,ipTables_data5u
+                   ,ipTables_feilongip
+                   ,ipTables_66ip_main) %>%
     rbindlist() %>%
     .[!duplicated(url)] %>%
     .[!is.na(url) | !is.na(port)] %>%
@@ -335,7 +462,8 @@ fetchIp <- function(x) {
     .[!is.na(url) & !is.na(port)]
 
 
-  cl <- makeCluster(max(detectCores()/4, 4), type = 'FORK')
+  ## ===========================================================================
+  cl <- makeCluster(min(detectCores()/4, 8), type = 'FORK')
   ipAvailable <- parSapply(cl, 1:nrow(ipTables), function(i){
     ip <- ipTables[i]
     if (class(try(r <- GET('http://vip.stock.finance.sina.com.cn/corp/go.php/vMS_FuQuanMarketHistory/stockid/000001.phtml',
@@ -345,12 +473,13 @@ fetchIp <- function(x) {
                            use_proxy(ip[1, url], ip[1, as.numeric(port)]),
                            timeout(5))
     )) != "try-error") {
-      return(i)
+      if (r$status_code == '200') return(i)
     }
   }) %>% unlist()
   stopCluster(cl)
-
   ipTables <- ipTables[ipAvailable]
+  ## ===========================================================================
+
   ipTables[, tryNo := 0]
   return(ipTables)
 }
