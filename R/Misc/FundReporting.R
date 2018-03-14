@@ -35,9 +35,12 @@ currTradingDay <- ChinaFuturesCalendar[days <= format(Sys.Date(), '%Y%m%d')][nig
 #                           accountCapital = c(4000000, 1300000,1000000, 2000000, 8000000),
 #                           accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号', '汉峰云鼎')
 #                           )
-accountInfo <- data.table(accountID = c('TianMi1','TianMi2','TianMi3','YunYang1'),
-                          accountCapital = c(4000000, 1300000,1000000, 2000000),
-                          accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号')
+accountInfo <- data.table(accountID = c('TianMi1','TianMi2','TianMi3','YunYang1',
+                                        'SimNow_YY'),
+                          accountCapital = c(4000000, 1300000,1000000, 2000000,
+                                             1000000),
+                          accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号',
+                                          'SimNow_YY')
                           )
 logPath <- "/home/fl/myData/log/FundReporting"
 
@@ -50,7 +53,13 @@ if (file.exists(tempFile)) file.remove(tempFile)
 ## =============================================================================
 ## i = 1
 fetchFund <- function(i, author = FALSE) {
-  mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.166')
+  # mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.166')
+  if (grepl('SimNow', accountInfo[i,accountID])) {
+      mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.135')
+  } else {
+      mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.166')
+  }
+
   reportAccount <- dbGetQuery(mysql,
     "select * from report_account_history
      order by TradingDay") %>%
@@ -131,18 +140,33 @@ fetchFund <- function(i, author = FALSE) {
   # print(tradingInfo)
   ## ---------------------------------------------------------------------------
 
+
+  ## ---------------------------------------------------------------------------
+  failedInfo <- dbGetQuery(mysql,
+    "select * from failedInfo") %>% as.data.table()
+  failedInfo[offset == '平仓', direction := ifelse(direction == 'long','short','short')]
+  failedInfo[, offset := NULL]
+  setcolorder(failedInfo, c('TradingDay', 'strategyID', 'InstrumentID', 'direction','volume'))
+  # print(positionInfo)
+  ## ---------------------------------------------------------------------------
+
   ## ---------------------------------------------------------------------------
   ## 写入 log
   tempFile <- paste0(logPath,'/',currTradingDay[1, days],'_fund.txt')
-  sink(tempFile, append = TRUE)
-  cat("## ----------------------------------- ##")
-  cat('\n')
-  write.table(as.data.frame(t(fund)), tempFile
-              , append = TRUE, col.names = FALSE
-              , sep = ' :==> ')
-  cat("## ----------------------------------- ##\n")
-  if (author) {
-    cat("## @william")
+  if (!grepl('SimNow', accountInfo[i,accountID])) {
+    sink(tempFile, append = TRUE)
+    cat("## ----------------------------------- ##")
+    cat('\n')
+    write.table(as.data.frame(t(fund)), tempFile
+                , append = TRUE, col.names = FALSE
+                , sep = ' :==> ')
+    if (!is.na(grep('SimNow', accountInfo$accountID)[1])) {
+      if (i == grep('SimNow', accountInfo$accountID)[1]-1) {
+        cat("## ----------------------------------- ##\n")
+        cat("\n## ----------------------------------- ##\n")
+        cat("## @william")
+      }
+    }
   }
 
   ## ===========================================================================
@@ -159,11 +183,22 @@ fetchFund <- function(i, author = FALSE) {
               , sep = ' :==> ')
   cat('\n')
   if (nrow(positionInfo) != 0) {
-    write.table("## -------------------------------------- ##", tempFile
-                , append = TRUE, col.names = FALSE, row.names = FALSE)
-    cat("## 今日持仓信息 ##")
+    # write.table("## ---------------------------------- ##", tempFile
+    #             , append = TRUE, col.names = FALSE, row.names = FALSE)
+    cat("## ----------------------------------- ##")
+    cat("\n## 今日持仓信息 ##")
     cat('\n')
     print(positionInfo)
+    cat('\n')
+  }
+
+  if (nrow(failedInfo) != 0) {
+    # write.table("## ---------------------------------- ##", tempFile
+    #             , append = TRUE, col.names = FALSE, row.names = FALSE)
+    cat("## ----------------------------------- ##")
+    cat("\n## 未平仓信息 ##")
+    cat('\n')
+    print(failedInfo)
     cat('\n')
   }
 
@@ -180,6 +215,7 @@ fetchFund <- function(i, author = FALSE) {
   cat("## ----------------------------------- ##\n")
   ## ===========================================================================
   if (author) {
+    cat("\n## ----------------------------------- ##\n")
     cat("## @william")
   }
 }
