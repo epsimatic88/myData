@@ -135,3 +135,11 @@ dt[, stockName := gsub(' ', '', stockName)]
 mysqlWrite(db = 'china_stocks', tbl = 'daily_from_163',
            data = dt, isTruncated = T)
 ## =============================================================================
+
+if (F) {
+    # dt <- mysqlQuery(db = 'china_stocks',
+    #                  query = 'select * from daily_from_163
+    #                          order by TradingDay, stockID')
+    destFile <- '/home/fl/myData/data/ChinaStocks/Bar/163_bar.csv'
+    fwrite(dt, destFile)
+}
