@@ -290,6 +290,24 @@ cal_adj_factor <- function(stockID,
                                 , 2)]
         }
 
+        ## =====================================================================
+        ## 复权处理方法
+        ## 
+        ## - 如果不属于股改（股权分置改革）
+        ##   beta_t = (P_{t-1} + 配股价格 × 配股比例 / 10 - 现金分红数量 / 10) /
+        ##            (1 + 配股比例 / 10 + 转送总比例 / 10)
+        ##            
+        ## - 如果是在股改期间，取得分红的
+        ##   + 交易所会先处理除权除息，这里我们模拟交易所在停牌期间的除权除息
+        ##   + 如果股改期间有
+        ##                1. 非流通股东支付股票给流通股东
+        ##                2. 非流通股东支付现金给流通股东
+        ##     则需要再计算获得实际收益的比例
+        ##     beta_t = (P_{t-1} - 每股支付的现金额度) /
+        ##              (1 + 支付的股份数量 / (停牌期间送转的股份数量 + 10))
+        ##     其中，后面的是需要考虑包含期间送转股份的稀释，不是原来公式的 10，需要多家 S+10
+        ## =====================================================================
+
         if (dt[i, shareRatio == 0 & cashRatio == 0]) {
             ## ------------------------------------------------------
             beta <- dt[i-1, close] / 
@@ -384,7 +402,7 @@ for (id in allStocks$stockID) {
     tmp <- merge(dt, dtWind,
                  by = c('TradingDay','stockID'),
                  all = T)
-    res <- tmp[abs(closeBadj.x / closeBadj.y - 1) > .005] %>% 
+    res <- tmp[abs(closeBadj.x / closeBadj.y - 1) > .002] %>% 
     .[,.(TradingDay, stockID,
          bAdj.x, closeBadj.x,
          bAdj.y, closeBadj.y, bAdj2,
@@ -394,8 +412,9 @@ for (id in allStocks$stockID) {
     #      bAdj.x, closeBadj.x,
     #      bAdj.y, closeBadj.y, bAdj2)]
 
-    if (nrow(res) > 20) {
+    if (nrow(res) / nrow(dt) > .1) {
         print(i)
+        print(res)
         stop()
     }
 }
