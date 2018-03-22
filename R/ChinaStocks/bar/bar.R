@@ -6,6 +6,9 @@
 ## Author : fl@hicloud-investment.com
 ## Date   : 2018-03-20
 ##
+## Ref：
+## - 新浪股改方案汇总数据：http://biz.finance.sina.com.cn/stock/company/stk_distrall.php
+## - 中国资本证券网股改方案：http://stockhq.ccstock.cn/pages/profiles/reform/000001.html
 ## =============================================================================
 
 ## =============================================================================
@@ -27,16 +30,85 @@ DATA_PATH_FromCninfo <- "/home/fl/myData/data/ChinaStocks/Fundamental/FromCninfo
 WIND_PATH <- "/home/fl/myData/data/ChinaStocks/Wind/"
 dtWindBar <- paste0(WIND_PATH, "wind_bar.csv") %>% fread()
 dtWindBar[, stockID := substr(stockID, 1, 6)]
+
+## ----------------------------------------------------
+## Wind 的 sharaRatio 和 cashRatio 在股权分置改革期间
+## 已经去掉转送顾的情况
+## 也就是不需要在重新计算了
+## 
+## 原来的计算公示是，需要在转送增的基础上计算支付比例的，即 (10+S)
+## F / (10+S)
+## ----------------------------------------------------
 dtWindBonus <- paste0(WIND_PATH, "wind_bonus.csv") %>% 
     fread() %>% 
-    .[, stockID := substr(stockID, 1, 6)]
+    .[, stockID := substr(stockID, 1, 6)] %>%
+    .[, remarks := NA]
+dtWindBonus[nchar(exClass) < 2 & grepl('股改', exDescription), exClass := '股改']
+dtWindBonus[nchar(exClass) < 2 & 
+            (shareRatio + cashRatio + conversedRatio) != 0,
+            exClass := '分红']
+## 更正 Wind 数据错误的问题
+## 1. 000010
+##    链接：http://www.chinastock.com.cn/yhwz_about.do?methodCall=getDetailInfo&docId=3581564
+##    方案：当天实行 10 送 30 的送转方案
+dtWindBonus[stockID == '000010' &
+            exDay == '2013-07-19', ':='(
+                exClass = '股改',
+                exDescription = "股改对价：每10股送30股",
+                shareRatio = 3
+                )]
 ## =============================================================================
 
 
 ## =============================================================================
 # dtSinaBar <- mysqlQuery(db = 'china_stocks',
 #                       query = 'select * from daily_from_sina')
+dtSinaBonus <- '/home/fl/myData/data/ChinaStocks/Reform/FromSina.csv' %>% 
+    fread()
+setnames(dtSinaBonus, "每10股支付股数(对价)", "每10股支付对价")
+
+for (i in 1:nrow(dtSinaBonus)) {
+    if (dtSinaBonus[i, 每10股支付对价] != 0) {
+        tmp <- dtWindBonus[exClass == '股改' & stockID == dtSinaBonus[i, 证券代码]]
+        if (nrow(tmp) != 0) {
+            for (k in 1:nrow(tmp)) {
+                if (tmp[k, is.na(shareRatio) | abs(shareRatio - 0) < 0.000001 ]) {
+                    print(dtSinaBonus[i])
+                    print(tmp)
+                    print("--------------------------------------------------------")
+                    tbl <- dtWindBonus[exClass == '股改' & 
+                                stockID == dtSinaBonus[i, 证券代码] &
+                                exDay == tmp[k,exDay]]
+                    if (nrow(tbl) != 0 &
+                        grepl('送([0-9]{1,})股', tbl$exDescription)) {
+                        dtWindBonus[exClass == '股改' & 
+                                    stockID == dtSinaBonus[i, 证券代码] &
+                                    exDay == tmp[k,exDay],
+                                    ":="(
+                                        exDescription = paste0(exClass, "送",
+                                            dtSinaBonus[i, 每10股支付对价], "股"),
+                                        shareRatio = dtSinaBonus[i, 每10股支付对价]/10,
+                                        remarks = "FromSina")]
+                    }
+                }
+                # else if (abs(dtSinaBonus[i, 每10股支付对价] - 
+                #             tmp[1,shareRatio * 10]) > .000001) {
+                #     print(dtSinaBonus[i])
+                #     print(tmp)
+                #     print("--------------------------------------------------------")
+                # }
+            }
+        }
+    }
+}
 ## =============================================================================
+
+
+## =============================================================================
+
+## =============================================================================
+
+
 
 ## =============================================================================
 dt163Bar <- fread('/home/fl/myData/data/ChinaStocks/Bar/163_bar.csv',
@@ -51,13 +123,13 @@ dt163Bar <- fread('/home/fl/myData/data/ChinaStocks/Bar/163_bar.csv',
 ## 利用 163 数据计算后复权因子
 ## ----------------------
 cal_adj_factor <- function(stockID, 
-                           startDate = '2015-01-01', 
+                           startDate = '2014-01-01', 
                            endDate = '2016-09-12') {
     ## ----------
     id <- stockID
     ## ----------
 
-    ## =============================================================================
+    ## =========================================================================
     dt163 <- dt163Bar[stockID == id][TradingDay %between% 
                                      c(startDate, endDate)] %>%
         merge(.,
@@ -65,10 +137,10 @@ cal_adj_factor <- function(stockID,
                                  c(.[1, TradingDay], .[.N, TradingDay])],
         , by.x = 'TradingDay', by.y = 'days', all = T) %>% 
         .[!is.na(stockID)]
-    ## =============================================================================
+    ## =========================================================================
 
 
-    ## =============================================================================
+    ## =========================================================================
     ## FromSina
     ## ---------
     dividendFile <- paste0(DATA_PATH_FromSina, '/', id, "/share_bonus_1.csv")
@@ -117,8 +189,7 @@ cal_adj_factor <- function(stockID,
     } else {
         dividendSina <- data.table()
     }
-
-
+    
     allotmentFile <- paste0(DATA_PATH_FromSina, '/', id, "/share_bonus_2.csv")
     if (file.exists(allotmentFile)) {
         allotmentSina <- fread(allotmentFile)
@@ -140,18 +211,10 @@ cal_adj_factor <- function(stockID,
     } else {
         allotmentSina <- data.table()
     }
-
-    reformWind <- dtWindBonus[stockID == id] %>% 
-        .[exClass == '股改' | grepl('股改', exDescription)] %>%  ## 有时候万得写错行了
-        .[exDay %between% c(startDate, endDate)] %>% 
-        .[, .(stockID, exDay
-              , shareRatio = as.numeric(gsub(".*送(.*)股", "\\1", exDescription))/10
-              , cashRatio)]
-    ## =============================================================================
+    ## =========================================================================
 
 
-
-    ## =============================================================================
+    ## =========================================================================
     ## 所有的 bonus
     ## -----------
     if (nrow(dividendSina) != 0 & nrow(allotmentSina) != 0) {
@@ -177,6 +240,14 @@ cal_adj_factor <- function(stockID,
                             配股价格 = 0)
     }
 
+    ## =========================================================================
+    reformWind <- dtWindBonus[stockID == id] %>% 
+        .[exClass == '股改' | grepl('股改', exDescription)] %>%  ## 有时候万得写错行了
+        .[exDay %between% c(startDate, endDate)] %>% 
+        .[, .(stockID, exDay
+              , shareRatio = as.numeric(gsub(".*送([0-9]{1,})股", "\\1", exDescription))/10
+              , cashRatio)]
+
     if (nrow(reformWind) != 0) {
         bonus <- merge(bonus, reformWind, 
                   by.x = c('股票代码', '除权除息日'),
@@ -188,9 +259,9 @@ cal_adj_factor <- function(stockID,
                 , cashRatio = 0
             )]
     }
-    ## =============================================================================
+    ## =========================================================================
 
-    ## =============================================================================
+    ## =========================================================================
     dt <- merge(dt163, bonus,
                 by.x = c('stockID', 'TradingDay'),
                 by.y = c('股票代码', '除权除息日'),
@@ -306,6 +377,15 @@ cal_adj_factor <- function(stockID,
         ##     beta_t = (P_{t-1} - 每股支付的现金额度) /
         ##              (1 + 支付的股份数量 / (停牌期间送转的股份数量 + 10))
         ##     其中，后面的是需要考虑包含期间送转股份的稀释，不是原来公式的 10，需要多家 S+10
+        ##
+        ## ----------------------------------------------------
+        ## Wind 的 sharaRatio 和 cashRatio 在股权分置改革期间
+        ## 已经去掉转送顾的情况
+        ## 也就是不需要在重新计算了
+        ## 
+        ## 原来的计算公示是，需要在转送增的基础上计算支付比例的，即 (10+S)
+        ## F / (10+S)
+        ## ----------------------------------------------------
         ## =====================================================================
 
         if (dt[i, shareRatio == 0 & cashRatio == 0]) {
@@ -314,7 +394,7 @@ cal_adj_factor <- function(stockID,
                     (round(
                         (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
                                     - dt[i, 现金分红比例 /10]) / 
-                        (1 + dt[i, 转送总比例 /10 + 配股比例 /10])
+                        (1 + dt[i, 转送总比例 /10 + 配股比例 /10]) + 0.000001
                            , 2))
             ## ------------------------------------------------------
             # beta <- dt[i-1, close] / 
@@ -328,24 +408,49 @@ cal_adj_factor <- function(stockID,
             tmp <- dt[1:(i-1)][(max(which(open != 0 & !is.na(open))) + 1) : .N] %>% 
                 rbind(., dt[i]) %>% 
                 .[!is.na(TradingDay) & !is.na(stockID)]
-
-            u <- tmp[, sum(cashRatio)] /10
-            v <- tmp[, sum(shareRatio * 10 / (10 + 转送总比例/10))]
-            ## ---------------------------------
-            beta <- dt[i-1, close] / 
-                    (round(
-                        (dt[i-1, close] - u) /
-                        (1 + v)
-                        , 2))
-            ## ---------------------------------
-            # beta <- dt[i-1, close] / 
-            #         (
-            #             (dt[i-1, close] - u) /
-            #             (1 + v)
-            #         )
+            
+            ## -------------------------------------------------
+            ## Wind 的　sharｅRatio 已经在 转送增 的基础上处理过了
+            # v <- tmp[, sum(shareRatio * 10 / (10 + 转送总比例))]
+            ## -------------------------------------------------
+            
+            if (all(is.na(tmp$remarks))) {
+                u <- tmp[, sum(cashRatio)]
+                v <- tmp[, sum(shareRatio)]
+            } else {
+                u <- tmp[, sum(cashRatio)]
+                v <- tmp[, sum(shareRatio * 10 / (10 + 转送总比例))]
+            }
+            
+            if (tmp[.N, (转送总比例 + 现金分红比例 + 配股比例 + 配股价格) == 0]) {
+                ## 已经在停牌期间除权除息了
+                ## ---------------------------------
+                beta <- dt[i-1, close] / 
+                        (round(
+                            (dt[i-1, close] - u) /
+                            (1 + v)  + 0.000001
+                            , 2))
+                ## ---------------------------------
+                # beta <- dt[i-1, close] / 
+                #         (
+                #             (dt[i-1, close] - u) /
+                #             (1 + v)
+                #         )
+            } else {
+                ## 上一个交易日是正常交易，没有停牌的
+                ## 先除权除息
+                closeX <- (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
+                              - dt[i, 现金分红比例 /10]) / 
+                          (1 + dt[i, 转送总比例 /10 + 配股比例 /10])
+                ## 再计算支付后的价格
+                closeX <- round(
+                                (closeX - u) / (1 + v) + 0.000001
+                                ,2)
+                beta <- dt[i-1, close] / closeX
+            }
         }
 
-        dt[i, bAdj := beta]
+        dt[i, bAdj := round(beta, 6)]
     }
 
     cat('\nFinished.\n')
@@ -374,7 +479,7 @@ cal_adj_factor <- function(stockID,
     ## 1. ‘交易’
     ## 2. '停牌'
     dt[, status := '交易']
-    dt[open == 0 & high == 0 & low == 0, status := '交易']
+    dt[open == 0 & high == 0 & low == 0, status := '停牌']
 
     return(dt[, .(TradingDay, stockID
                   , open, high, low, close
@@ -386,17 +491,17 @@ cal_adj_factor <- function(stockID,
 
 for (id in allStocks$stockID) {
 
-    ## =============================================================================
+    ## =========================================================================
     dt <- cal_adj_factor(id)
-    ## =============================================================================
+    ## =========================================================================
 
 
-    ## =============================================================================
+    ## =========================================================================
     dtWind <- dtWindBar[stockID == id] %>% 
-        .[TradingDay %between% c('2015-01-01', '2016-09-12')] 
+        .[TradingDay %between% c(dt[,min(TradingDay)], dt[,max(TradingDay)])] 
     dtWind[, bAdj2 := round(bAdj / dtWind[1, bAdj], 6)]
     dtWind[, closeBadj := round(close * bAdj2, 2)]
-    ## =============================================================================
+    ## =========================================================================
 
     dt[, closeBadj := round(close * bAdj, 2)]
     tmp <- merge(dt, dtWind,
@@ -412,6 +517,8 @@ for (id in allStocks$stockID) {
     #      bAdj.x, closeBadj.x,
     #      bAdj.y, closeBadj.y, bAdj2)]
 
+    if (! id %in% 
+        c('000006', '000010', '000536', '000797'))
     if (nrow(res) / nrow(dt) > .1) {
         print(i)
         print(res)
