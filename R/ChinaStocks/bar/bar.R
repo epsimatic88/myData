@@ -61,8 +61,8 @@ dtWindBonus[stockID == '000010' &
 
 
 ## =============================================================================
-# dtSinaBar <- mysqlQuery(db = 'china_stocks',
-#                       query = 'select * from daily_from_sina')
+dtSinaBar <- mysqlQuery(db = 'china_stocks',
+                      query = 'select * from daily_from_sina')
 dtSinaBonus <- '/home/fl/myData/data/ChinaStocks/Reform/FromSina.csv' %>% 
     fread()
 setnames(dtSinaBonus, "每10股支付股数(对价)", "每10股支付对价")
@@ -124,17 +124,19 @@ dt163Bar <- fread('/home/fl/myData/data/ChinaStocks/Bar/163_bar.csv',
 ## ----------------------
 cal_adj_factor <- function(stockID, 
                            startDate = '2014-01-01', 
-                           endDate = '2016-09-12') {
+                           endDate = '2018-03-01') {
     ## ----------
     id <- stockID
     ## ----------
 
     ## =========================================================================
     dt163 <- dt163Bar[stockID == id][TradingDay %between% 
-                                     c(startDate, endDate)] %>%
-        merge(.,
-        ChinaStocksCalendar[days %between%
-                                 c(.[1, TradingDay], .[.N, TradingDay])],
+                                     c(startDate, endDate)]
+    if (nrow(dt163) == 0) return(data.table())
+
+    dt163 <- merge(dt163,
+                   ChinaStocksCalendar[days %between%
+                                       c(dt163[1, TradingDay], dt163[.N, TradingDay])],
         , by.x = 'TradingDay', by.y = 'days', all = T) %>% 
         .[!is.na(stockID)]
     ## =========================================================================
@@ -194,20 +196,27 @@ cal_adj_factor <- function(stockID,
     if (file.exists(allotmentFile)) {
         allotmentSina <- fread(allotmentFile)
         colnames(allotmentSina) <- paste0("X", 1:ncol(allotmentSina))
-        allotmentSina <- allotmentSina[!grepl("\\(|\\)", X2)] %>% 
-            .[, .(股票代码 = id, 
-                  配股比例 = as.numeric(X2),
-                  配股价格 = as.numeric(X3),
-                  股权登记日 = X6,
-                  配股除权日 = X5)] %>% 
-            .[配股除权日 > startDate]
-        if (nrow(allotmentSina) != 0) {
-            for (k in 1:nrow(allotmentSina)) {
-                if (!allotmentSina[k, 股权登记日] %in% dt163$TradingDay) {
-                    allotmentSina[k, 股权登记日 := dt163[TradingDay < allotmentSina[k, 股权登记日]][.N, TradingDay]]
+        if (any(grepl('没有数据', allotmentSina$X1))) {
+            allotmentSina <- data.table()
+        } else {
+            allotmentSina <- allotmentSina[!grepl("\\(|\\)", X2)] %>% 
+                .[, .(股票代码 = id, 
+                      配股比例 = as.numeric(X2),
+                      配股价格 = as.numeric(X3),
+                      股权登记日 = X6,
+                      配股除权日 = X5)] %>% 
+                .[配股除权日 > startDate]
+            ## -----------------------------------------------------------------
+            if (nrow(allotmentSina) != 0) {
+                for (k in 1:nrow(allotmentSina)) {
+                    if (!allotmentSina[k, 股权登记日] %in% dt163$TradingDay) {
+                        allotmentSina[k, 股权登记日 := dt163[TradingDay < allotmentSina[k, 股权登记日]][.N, TradingDay]]
+                    }
                 }
             }
+            ## -----------------------------------------------------------------
         }
+
     } else {
         allotmentSina <- data.table()
     }
@@ -273,76 +282,13 @@ cal_adj_factor <- function(stockID,
         ifelse(is.na(x), 0, as.numeric(x))
     }), .SDcols = cols]
 
+    if (dt[1, close == 0]) {
+        dt[1, close := preClose]
+    }
+
     pb <- txtProgressBar(min = 1, max = nrow(dt), style = 1)
-    cat(paste("\nStaring calculate adjust factor for stockID:", id, "\n"))
-    # for (i in 2:nrow(dt)) {
-    #     setTxtProgressBar(pb, i)
-    #     # if (dt[i, is.na(close)]) {
-    #     #     dt[i, ":="(
-    #     #             open = dt[i-1, open],
-    #     #             high = dt[i-1, high],
-    #     #             low  = dt[i-1, low],
-    #     #             close = dt[i-1, close],
-    #     #             status = '停牌'
-    #     #         )]
-    #     # }
+    cat(paste("\nStarting calculate adjust factor for stockID:", id, "\n"))
 
-    #     if (dt[i, is.na(close)]) {    
-    #         dt[i, ":="(
-    #                 # open = dt[i-1, open],
-    #                 # high = dt[i-1, high],
-    #                 # low  = dt[i-1, low],
-    #                 close = dt[i-1, close],
-    #                 status = '停牌'
-    #             )]
-
-    #         if (!is.na(dt[i, 除权除息日])) {
-    #             ## 处理停牌期间分红的股票
-    #             u <- dt[i, (配股价格 * 配股比例 / 10 - 现金分红比例 / 10)]
-    #             v <- dt[i, (1 + 转送总比例 / 10 + 配股比例 / 10)]
-
-    #             dt[i, ":="(
-    #                     openX = round((open + u) / v, 2),
-    #                     highX = round((high + u) / v, 2),
-    #                     lowX = round((low + u) / v, 2),
-    #                     closeX = round((close + u) / v, 2)
-    #                 )]
-    #         } else {
-    #             dt[i, ":="(
-    #                     openX = dt[i-1, openX],
-    #                     highX = dt[i-1, highX],
-    #                     lowX = dt[i-1, lowX],
-    #                     closeX = dt[i-1, closeX]
-    #                 )]
-    #         }
-    #     } else {
-    #         dt[i, ":="(
-    #                 openX = open,
-    #                 highX = high,
-    #                 lowX = low,
-    #                 closeX = close
-    #             )]
-    #     }
-
-    #     ## =========================================================================
-    #     ## 跑循环，我使用新的算法，
-    #     ## 所以就先不用这个循环了，速度太慢
-    #     ## -------------------------------------------------------------------------
-    #     ## 单次除权出息 closeAdj
-    #     # dt[i, closeAdj := round(
-    #     #                          (close - 现金分红比例 / 10 + 配股价格 * 配股比例 / 10) /
-    #     #                           (1 + 转送总比例 / 10 + 配股比例 / 10)
-    #     #                         ,2)]
-
-    #     # ## 复权后价格：dt[i-1, bAdj] * close
-    #     # ## 除以复权前价格，
-    #     # ## 得到 后复权因子
-    #     # dt[i, bAdj := round(
-    #     #                     dt[i-1, bAdj] * close / closeAdj
-    #     #                     ,6)]
-    #     ## =========================================================================
-
-    # }
     for (i in 2:nrow(dt)) {
         setTxtProgressBar(pb, i)
 
@@ -354,13 +300,23 @@ cal_adj_factor <- function(stockID,
                    dt[i, (转送总比例 + 现金分红比例 + 配股比例 + 配股价格) != 0] &
                    dt[i, (shareRatio + cashRatio) == 0]) {
             ## 需要除权除息
-            dt[i, close := round(
-                                (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
-                                                - dt[i, 现金分红比例 /10]) / 
-                                    (1 + dt[i, 转送总比例 /10 + 配股比例 /10])
-                                , 2)]
+            if (dt[i, open != 0 & high != 0 & low != 0] |
+                dt[i, open == 0 & high == 0 & low == 0 & 
+                      (is.na(preClose) | preClose == 0)]) {
+                ## 如果是正常的交易,
+                ## 进行除权除息处理
+                dt[i, close := round(
+                                    (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
+                                                    - dt[i, 现金分红比例 /10]) / 
+                                        (1 + dt[i, 转送总比例 /10 + 配股比例 /10])
+                                    , 2)]  
+            } else if (dt[i, !is.na(preClose) & preClose != 0]) {
+                ## 如果是停牌的情况,
+                ## 则直接使用　PreClose
+                dt[i, close := preClose]
+            }
+            ##
         }
-
         ## =====================================================================
         ## 复权处理方法
         ## 
@@ -390,19 +346,26 @@ cal_adj_factor <- function(stockID,
 
         if (dt[i, shareRatio == 0 & cashRatio == 0]) {
             ## ------------------------------------------------------
-            beta <- dt[i-1, close] / 
-                    (round(
-                        (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
-                                    - dt[i, 现金分红比例 /10]) / 
-                        (1 + dt[i, 转送总比例 /10 + 配股比例 /10]) + 0.000001
-                           , 2))
-            ## ------------------------------------------------------
-            # beta <- dt[i-1, close] / 
-            #         (
-            #             (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
-            #                         - dt[i, 现金分红比例 /10]) / 
-            #             (1 + dt[i, 转送总比例 /10 + 配股比例 /10])
-            #         )
+            if (dt[i, open != 0 & high != 0 & low != 0] |
+                dt[i, open == 0 & high == 0 & low == 0 & 
+                      (is.na(preClose) | preClose == 0)]) {
+                beta <- dt[i-1, close] / 
+                        (round(
+                            (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
+                                        - dt[i, 现金分红比例 /10]) / 
+                            (1 + dt[i, 转送总比例 /10 + 配股比例 /10]) + 0.000001
+                               , 2))
+                ## ------------------------------------------------------
+                # beta <- dt[i-1, close] / 
+                #         (
+                #             (dt[i-1, close] + dt[i, 配股价格 * 配股比例 /10]
+                #                         - dt[i, 现金分红比例 /10]) / 
+                #             (1 + dt[i, 转送总比例 /10 + 配股比例 /10])
+                #         )
+            } else if (dt[i, !is.na(preClose) & preClose != 0]) {
+                beta <- dt[i-1, close] / dt[i, close]
+            }
+            ## --------------------------------------------------------
         } else {
             ## 处理股改的股票分红问题
             tmp <- dt[1:(i-1)][(max(which(open != 0 & !is.na(open))) + 1) : .N] %>% 
@@ -453,21 +416,9 @@ cal_adj_factor <- function(stockID,
         dt[i, bAdj := round(beta, 6)]
     }
 
-    cat('\nFinished.\n')
+    cat('\nFinished.\n\n')
     dt[1, bAdj := 1]
     dt[, bAdj := round(cumprod(bAdj), 6)]
-
-    # ## 当日除权出息价格
-    # dt[, closeAdj := round(
-    #     (closeX + 配股价格 * 配股比例 / 10 - 现金分红比例 / 10) /
-    #     (1 + 转送总比例 / 10 + 配股比例 / 10), 2
-    #     )]
-
-    # ## 后复权因子
-    # dt[, bAdj := lag(
-    #     round(cumprod(closeX / closeAdj), 6)
-    #     )]
-    # dt[1, bAdj := 1]
 
     ## 前复权价格
     # dt[, closeFadj := round(close * bAdj / dt[, max(bAdj)], 2)]
@@ -479,7 +430,12 @@ cal_adj_factor <- function(stockID,
     ## 1. ‘交易’
     ## 2. '停牌'
     dt[, status := '交易']
-    dt[open == 0 & high == 0 & low == 0, status := '停牌']
+    dt[open == 0 & high == 0 & low == 0, ":="(
+        open = close,
+        high = close,
+        low = close
+        ,status = '停牌'
+        )]
 
     return(dt[, .(TradingDay, stockID
                   , open, high, low, close
@@ -489,10 +445,19 @@ cal_adj_factor <- function(stockID,
 ## =============================================================================
 
 
+unStockID <- c('000006', '000010', '000536', '000797', '000901'
+               , "002036", "002046", "002089", "002101", "002132"
+               , "002151", "002312", "002363", "002496", "002506"
+               , "002522", "002634", "002682")
+
 for (id in allStocks$stockID) {
+    if (id < max(unStockID)) next
 
     ## =========================================================================
-    dt <- cal_adj_factor(id)
+    dt <- cal_adj_factor(id) %>% 
+        .[TradingDay %between% c('2014-01-01', '2016-09-12')]
+    if (nrow(dt) == 0) next
+    dt[, closeBadj := round(close * bAdj, 2)]
     ## =========================================================================
 
 
@@ -503,11 +468,10 @@ for (id in allStocks$stockID) {
     dtWind[, closeBadj := round(close * bAdj2, 2)]
     ## =========================================================================
 
-    dt[, closeBadj := round(close * bAdj, 2)]
     tmp <- merge(dt, dtWind,
                  by = c('TradingDay','stockID'),
                  all = T)
-    res <- tmp[abs(closeBadj.x / closeBadj.y - 1) > .002] %>% 
+    res <- tmp[abs(closeBadj.x / closeBadj.y - 1) > .005] %>% 
     .[,.(TradingDay, stockID,
          bAdj.x, closeBadj.x,
          bAdj.y, closeBadj.y, bAdj2,
@@ -517,11 +481,11 @@ for (id in allStocks$stockID) {
     #      bAdj.x, closeBadj.x,
     #      bAdj.y, closeBadj.y, bAdj2)]
 
-    if (! id %in% 
-        c('000006', '000010', '000536', '000797'))
-    if (nrow(res) / nrow(dt) > .1) {
-        print(i)
-        print(res)
-        stop()
+    if (! id %in% unStockID) {
+        if (nrow(res) / nrow(dt) > .1) {
+            print(id)
+            print(res)
+            stop()
+        }
     }
 }
