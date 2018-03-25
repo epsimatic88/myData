@@ -132,7 +132,7 @@ cal_adj_factor <- function(stockID,
     ## =========================================================================
     dt163 <- dt163Bar[stockID == id][TradingDay %between% 
                                      c(startDate, endDate)]
-    if (nrow(dt163) == 0) return(data.table())
+    if (nrow(dt163) <= 1) return(data.table())
 
     dt163 <- merge(dt163,
                    ChinaStocksCalendar[days %between%
@@ -140,6 +140,91 @@ cal_adj_factor <- function(stockID,
         , by.x = 'TradingDay', by.y = 'days', all = T) %>% 
         .[!is.na(stockID)]
     ## =========================================================================
+
+
+    ## =========================================================================
+    ## FromEastmoney
+    ## -------------
+    dividendFile <- paste0(DATA_PATH_FromEastmoney, '/', id, "/dividend.csv")
+    if (file.exists(dividendFile)) {
+        dividendEastmoney <- fread(dividendFile, colClasses = c(股票代码 = 'character')) %>%
+            .[!grepl('-',总股本)] %>%
+            .[, .(股票代码
+                  # , 股票简称
+                  , 转送总比例, 现金分红比例
+                  # , 送股比例, 转股比例, 总股本
+                  # , 报告期, 预案公告日, 披露时间
+                  # , 分配预案, 方案进度
+                  ,股权登记日, 除息除权日)] %>%
+            .[order(除息除权日)]
+        # cols <- c("报告期","预案公告日","披露时间","股权登记日","除息除权日")
+        cols <- c("股权登记日","除息除权日")
+        dividendEastmoney[, (cols) := lapply(.SD, function(x){
+            gsub("(.*)T.*", '\\1', x)
+        }), .SDcols = cols]
+
+        cols <- c('转送总比例', '现金分红比例')
+        dividendEastmoney[, (cols) := lapply(.SD, function(x){
+            ifelse(grepl('-', x), 0, x)
+        }), .SDcols = cols]       
+        cols <- c('转送总比例', '现金分红比例')
+        dividendEastmoney[, (cols) := lapply(.SD, function(x){
+            as.numeric(x)
+        }), .SDcols = cols]   
+
+        for (i in 1:nrow(dividendEastmoney)) {
+            if (nchar(dividendEastmoney[i, 除息除权日]) < 4 &
+                nchar(dividendEastmoney[i, 股权登记日]) > 4 ) {
+                dividendEastmoney[i, 除息除权日 := ChinaStocksCalendar[days > dividendEastmoney[i, 股权登记日]][1, days]]
+            }
+        }
+
+        dividendEastmoney <- dividendEastmoney[nchar(股权登记日) > 4 & 
+                                               nchar(除息除权日) > 4 ] %>%
+            .[股权登记日 %between% c(dt163[1, TradingDay], dt163[.N, TradingDay])]
+    } else {
+        dividendEastmoney <- data.table()
+    }
+
+
+    ## -----------------------------------------------------------------------------
+    allotmentFile <- paste0(DATA_PATH_FromEastmoney, '/', id, "/allotment.csv")
+    if (file.exists(allotmentFile)) {
+        allotmentFile <- readLines(allotmentFile)
+        sp <- grep(paste0(".*", id, ".*", "配股详细资料.*"), allotmentFile) %>%
+            c(., length(allotmentFile))
+        allotmentEastmoney <- lapply(2:length(sp), function(kk){
+            tmp <- allotmentFile[sp[kk-1] : (sp[kk] - 1)]
+            info <- grep('配股比例', tmp, value = T) %>%
+                gsub("\"", '', .) %>%
+                strsplit(., ' ') %>%
+                unlist()
+            allotmentRatio <- info[2]
+            allotmentPrice <- info[4]
+
+            info <- grep('股权登记日', tmp, value = T) %>%
+                gsub("\"", '', .) %>%
+                strsplit(., ' ') %>%
+                unlist()
+            allotmentStart <- info[2]
+
+            info <- grep('除权基准日', tmp, value = T) %>%
+                gsub("\"", '', .) %>%
+                strsplit(., ' ') %>%
+                unlist()
+            allotmentEnd <- info[2]
+
+            res <- data.table(配股比例 = as.numeric(allotmentRatio),
+                              配股价格 = as.numeric(allotmentPrice),
+                              股权登记日 = allotmentStart,
+                              配股除权日 = allotmentEnd)
+        }) %>% rbindlist() %>%
+            .[, 股票代码 := id]
+    } else {
+        allotmentEastmoney <- data.table()
+    }
+    ## =========================================================================
+
 
 
     ## =========================================================================
@@ -154,21 +239,26 @@ cal_adj_factor <- function(stockID,
         if (nrow(dividendSina) == 0) {
             dividendSina <- data.table()
         } else {
-
+            ## 
             for (k in 1:nrow(dividendSina)) {
-                if (nchar(dividendSina[k, 股权登记日]) < 4 &
-                    nchar(dividendSina[k, 除权除息日]) > 4 ) {
-                    dividendSina[k, 股权登记日 := 
-                                 ChinaStocksCalendar[days < dividendSina[k, 除权除息日]][.N, days]]
+                if (nchar(dividendSina[k, 除权除息日]) < 4) {
+                    if (nchar(dividendSina[k, 股权登记日]) > 4) {
+                        dividendSina[k,  除权除息日 := 
+                                 ChinaStocksCalendar[days > dividendSina[k, 股权登记日]][1, days]]
+                    } else {
+                        dividendSina[k,  除权除息日 := 
+                                 ChinaStocksCalendar[days > dividendSina[k, 股权登记日]][1, days]] 
+                    }
                 }
             }
+            ##
             dividendSina <- dividendSina[除权除息日 > startDate]
 
             if (nrow(dividendSina) != 0) {
-
+                ## -------------------------------------------------------------
                 for (k in 1:nrow(dividendSina)) {
-                    if (!dividendSina[k, 股权登记日] %in% dt163$TradingDay) {
-                        dividendSina[k, 股权登记日 := dt163[TradingDay < dividendSina[k, 股权登记日]][.N, TradingDay]]
+                    if (!dividendSina[k, 除权除息日] %in% dt163$TradingDay) {
+                        dividendSina[k, 除权除息日 := dt163[TradingDay > dividendSina[k, 股权登记日]][1, TradingDay]]
                     }
                 }
 
@@ -186,6 +276,39 @@ cal_adj_factor <- function(stockID,
                     红股上市日 = NULL,
                     查看详细 = NULL
                     )]
+
+                if (nrow(dividendEastmoney) != 0) {
+                    for (k in 1:nrow(dividendSina)) {
+                        # print(k)
+                        tmp <- dividendEastmoney[除息除权日 == dividendSina[k, 除权除息日]]
+                        ## ---------------------------------------------------------
+                        if (nrow(tmp) != 0) {
+                            if ((dividendSina[k, round(转送总比例 + 0.000001, 3)] 
+                                 != tmp[1, round(转送总比例 + 0.000001, 3)]) |
+                                (dividendSina[k, round(现金分红比例 + 0.000001, 3)] 
+                                    != tmp[1, round(现金分红比例 + 0.000001, 3)])) {
+                                    msg <- paste(id, " dividend :==> 新浪数据与东方财富数据不一致")
+                                    cat('\ndividendEastmoney:\n')
+                                    print(dividendEastmoney[order(除息除权日)])
+
+                                    cat('\ndividendSina:\n')
+                                    print(dividendSina[order(除权除息日)])
+
+                                    ## =================================================
+                                    ## 新浪在统计 600317 历史分红的时候出现错误
+                                    ## 需要改正
+                                    if (id %in% c('600317')) {
+                                        dividendSina[k, 现金分红比例 := tmp[1, 现金分红比例]]
+                                    } else {
+                                        stop(msg)
+                                    }
+                                    ## =================================================
+                                }
+                        }
+                        ## ---------------------------------------------------------
+                    }  
+                }
+                ## -------------------------------------------------------------
             }
         }
     } else {
@@ -286,7 +409,7 @@ cal_adj_factor <- function(stockID,
         dt[1, close := preClose]
     }
 
-    pb <- txtProgressBar(min = 1, max = nrow(dt), style = 1)
+    pb <- txtProgressBar(min = 0, max = nrow(dt), style = 1)
     cat(paste("\nStarting calculate adjust factor for stockID:", id, "\n"))
 
     for (i in 2:nrow(dt)) {
@@ -313,7 +436,17 @@ cal_adj_factor <- function(stockID,
             } else if (dt[i, !is.na(preClose) & preClose != 0]) {
                 ## 如果是停牌的情况,
                 ## 则直接使用　PreClose
-                dt[i, close := preClose]
+                if (dt[i, (转送总比例 + 现金分红比例 + 配股比例) == 0]) {
+                    dt[i, close := preClose]
+                } else {
+                    tmpPreClose <- dt[i, round((dt[i-1,preClose] - 现金分红比例 /10) / 
+                                          (1 + 转送总比例 /10),2) ]
+                    if (dt[i, preClose < dt[i-1, close]]) {
+                        dt[i, close := preClose]
+                    } else {
+                        dt[i, close := tmpPreClose]
+                    }
+                }
             }
             ##
         }
@@ -444,19 +577,24 @@ cal_adj_factor <- function(stockID,
 }
 ## =============================================================================
 
-
-unStockID <- c('000006', '000010', '000536', '000797', '000901'
-               , "002036", "002046", "002089", "002101", "002132"
-               , "002151", "002312", "002363", "002496", "002506"
-               , "002522", "002634", "002682")
+unStockID <- c("000520"   ## 当天的分红万得没有计算
+               , "000536" ## 计算转增的时候有不一样的
+               , "002132" ## 细微差别
+               , "002506" ## 计算转增的时候有不一样的
+               , "002634" ## 细微差别
+               , "002682" ## 细微差别
+               )
 
 for (id in allStocks$stockID) {
+    # if (id %in% max(unStockID)) next
     if (id < max(unStockID)) next
 
     ## =========================================================================
-    dt <- cal_adj_factor(id) %>% 
-        .[TradingDay %between% c('2014-01-01', '2016-09-12')]
-    if (nrow(dt) == 0) next
+    dt <- cal_adj_factor(id)
+    if (nrow(dt) <= 1) next
+    
+    dt <- dt[TradingDay %between% c('2014-01-01', '2016-09-12')]
+    if (nrow(dt) <= 1) next
     dt[, closeBadj := round(close * bAdj, 2)]
     ## =========================================================================
 
@@ -476,10 +614,6 @@ for (id in allStocks$stockID) {
          bAdj.x, closeBadj.x,
          bAdj.y, closeBadj.y, bAdj2,
          status.x, status.y)]
-    # tmp[abs(bAdj.x / bAdj2 - 1) > .001] %>% 
-    # .[,.(TradingDay, stockID,
-    #      bAdj.x, closeBadj.x,
-    #      bAdj.y, closeBadj.y, bAdj2)]
 
     if (! id %in% unStockID) {
         if (nrow(res) / nrow(dt) > .1) {
