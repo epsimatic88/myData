@@ -12,6 +12,7 @@ CREATE DATABASE `china_stocks_bar` DEFAULT CHARACTER SET utf8 COLLATE utf8_gener
 CREATE TABLE  china_stocks_bar.daily(
     TradingDay      DATE             NOT NULL,          ## 交易日期
     stockID         CHAR(10)         NOT NULL,          ## 日期属性: 
+    stockName       VARCHAR(30),                        ## 股票名称: 
     #------------------------------------------------------
     open            DECIMAL(15,3),                      ## 开盘价
     high            DECIMAL(15,3),                      ## 开盘价
@@ -27,7 +28,9 @@ CREATE TABLE  china_stocks_bar.daily(
     -- tcap            DECIMAL(30,3),                      ## 总市值
     #-----------------------------------------------------
     status          VARCHAR(50),                        ## 交易状态
-    isUL            CHAR(1),                            ## 涨跌停标识
+    upperLimit      DECIMAL(15,3),                      ## 涨停价
+    lowerLimit      DECIMAL(15,3),                      ## 跌停价
+    isLimit         CHAR(1),                            ## 涨跌停标识
                                                         ## 1. u: 涨停
                                                         ## 2, l：跌停
     ifST            CHAR(1),                            ## 是否 st:
