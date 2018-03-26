@@ -11,7 +11,7 @@ CREATE DATABASE `china_stocks` DEFAULT CHARACTER SET utf8 COLLATE utf8_general_c
 ################################################################################
 CREATE TABLE  china_stocks.daily_from_sina(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码: 
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码: 
     #------------------------------------------------------
     open            DECIMAL(15,3),                      ## 开盘价
     high            DECIMAL(15,3),                      ## 开盘价
@@ -37,7 +37,7 @@ ON china_stocks.daily_from_sina
 ################################################################################
 CREATE TABLE  china_stocks.daily_from_163(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码: 
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码: 
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称: 
     #------------------------------------------------------
     open            DECIMAL(15,3),                      ## 开盘价
@@ -69,7 +69,7 @@ ON china_stocks.daily_from_163
 ################################################################################
 CREATE TABLE  china_stocks.limit_from_jrj(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码 
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码 
     ## -------------------------------------------------------------------------
     zdtType         VARCHAR(10)      NOT NULL,          ## 涨跌停类型
                                                         ## 1：涨停
@@ -98,7 +98,7 @@ ON china_stocks.limit_from_jrj
 ################################################################################
 CREATE TABLE  china_stocks.rzrq_from_sina(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     rzye            DECIMAL(30,3),                      ## 融资余额(元)
@@ -129,7 +129,7 @@ ON china_stocks.rzrq_from_sina
 ################################################################################
 CREATE TABLE  china_stocks.rzrq_from_eastmoney(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     rzye            DECIMAL(30,3),                      ## 融资余额(元)
@@ -154,7 +154,7 @@ CREATE TABLE  china_stocks.rzrq_from_eastmoney(
 ################################################################################
 CREATE TABLE  china_stocks.dzjy_from_exch(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     price           DECIMAL(15,3),                      ## 成交价格：元
@@ -178,7 +178,7 @@ CREATE TABLE  china_stocks.dzjy_from_exch(
 ################################################################################
 CREATE TABLE  china_stocks.dzjy_from_sina(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     price           DECIMAL(15,3),                      ## 成交价格：元
@@ -241,7 +241,7 @@ ON china_stocks.report_from_jrj
 ################################################################################
 CREATE TABLE  china_stocks.lhb_from_sina(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     lhbName         TEXT(1000),                         ## 龙虎榜名称
@@ -258,7 +258,7 @@ CREATE TABLE  china_stocks.lhb_from_sina(
 ################################################################################
 CREATE TABLE  china_stocks.lhb_from_exch(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     lhbName         TEXT(1000),                         ## 龙虎榜名称
@@ -276,7 +276,7 @@ CREATE TABLE  china_stocks.lhb_from_exch(
 ################################################################################
 CREATE TABLE  china_stocks.lhb_from_eastmoney(
     TradingDay      DATE             NOT NULL,          ## 交易日期
-    stockID         CHAR(6)          NOT NULL,          ## 股票代码
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
     stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
     #------------------------------------------------------
     lhbName         TEXT(1000),                         ## 龙虎榜名称
@@ -286,3 +286,31 @@ CREATE TABLE  china_stocks.lhb_from_eastmoney(
     netAmount       DECIMAL(30,3)                       ## 净额（元）
     #-----------------------------------------------------
     );
+
+
+
+
+################################################################################
+## china_stocks.industry_class_from_SW
+################################################################################
+CREATE TABLE  china_stocks.industry_class_from_SW(
+    TradingDay      DATE             NOT NULL,          ## 交易日期
+    stockID         CHAR(10)         NOT NULL,          ## 股票代码
+    stockName       VARCHAR(30)      NOT NULL,          ## 股票名称
+    #------------------------------------------------------
+    industryLevel   CHAR(1),                            ## 行业分级
+    industryID      VARCHAR(30),                        ## 行业分类
+    industryName    VARCHAR(50),                        ## 行业分类
+    #------------------------------------------------------
+    startDate       DATE,                               ## 入选时间
+    endDate         DATE,                               ## 剔除时间
+    #-----------------------------------------------------
+    PRIMARY KEY (TradingDay, stockID, industryLevel)    ## 主键唯一，重复不可输入
+    );
+
+##----------- INDEX --------------------------------------------------------- ##
+CREATE INDEX index_industry_class_from_SW
+ON china_stocks.industry_class_from_SW
+(TradingDay, stockID, industryLevel);  
+## -------------------------------------------------------------------------- ## 
+
