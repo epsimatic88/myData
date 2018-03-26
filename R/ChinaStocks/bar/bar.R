@@ -123,7 +123,8 @@ dt163Bar <- fread('/home/fl/myData/data/ChinaStocks/Bar/163_bar.csv',
 ## 利用 163 数据计算后复权因子
 ## ----------------------
 cal_adj_factor <- function(stockID, 
-                           startDate = '2014-01-01', 
+                           # startDate = '2014-01-01', 
+                           startDate = '2016-08-31',
                            endDate = '2018-03-01') {
     ## ----------
     id <- stockID
@@ -299,6 +300,8 @@ cal_adj_factor <- function(stockID,
                                     ## 需要改正
                                     if (id %in% c('600317')) {
                                         dividendSina[k, 现金分红比例 := tmp[1, 现金分红比例]]
+                                    } else if (id %in% c('600900')) {
+                                        print('东方财富的数据有问题')
                                     } else {
                                         stop(msg)
                                     }
@@ -570,7 +573,7 @@ cal_adj_factor <- function(stockID,
         ,status = '停牌'
         )]
 
-    return(dt[, .(TradingDay, stockID
+    return(dt[, .(TradingDay, stockID, stockName
                   , open, high, low, close
                   , volume, turnover
                   , bAdj, status)])
@@ -583,7 +586,11 @@ unStockID <- c("000520"   ## 当天的分红万得没有计算
                , "002506" ## 计算转增的时候有不一样的
                , "002634" ## 细微差别
                , "002682" ## 细微差别
+               , "600381" ## 重组股票,需要单独处理
+               , "600401" ## 细微差别
+               , "600610" ##　需要进一步核对
                )
+x <- c()
 
 for (id in allStocks$stockID) {
     # if (id %in% max(unStockID)) next
@@ -619,7 +626,116 @@ for (id in allStocks$stockID) {
         if (nrow(res) / nrow(dt) > .1) {
             print(id)
             print(res)
-            stop()
+            # stop()
+            x <- c(x, id)
         }
     }
 }
+
+
+## =============================================================================
+## 开始处理　daily 数据
+## -----------------
+cl <- makeCluster(8, type = "FORK")
+dt <- parLapply(cl, allStocks[1:20]$stockID, function(id){
+    dt <- cal_adj_factor(id) %>% 
+        .[TradingDay > '2016-08-31']
+
+    dtWind <- dtWindBar[stockID == id] %>% 
+            .[TradingDay <= '2016-08-31'] %>% 
+            .[, .(TradingDay, stockID, stockName = NA,
+                  open, high, low, close, 
+                  volume = volume * 100,   ## wind 数据库是 手, 千元
+                  turnover = turnover * 1000, bAdj, status)]
+
+    res <- list(dt, dtWind) %>% rbindlist() %>% 
+        .[order(TradingDay)] %>% 
+        merge(., 
+              dt163Bar[stockID == id, 
+                      .(TradingDay, stockID, stockName)]
+              , by = c('TradingDay', 'stockID')
+              , all.x = T) %>% 
+        .[, ":="(
+            stockName = stockName.y,
+            stockName.x = NULL, 
+            stockName.y = NULL
+            )]
+
+    if (res[, max(TradingDay)] > '2016-08-31') {
+        res[TradingDay > '2016-08-31', 
+            bAdj := round(bAdj * res[TradingDay <= '2016-08-31'][.N, bAdj]
+                          , 6)]
+    }
+
+    res[, closeBadj := round(close * bAdj,4)]
+
+    res[, preCloseBadj := round(lag(closeBadj),4)]
+
+    ## 股改的票不设涨跌停
+    res[grepl('G', stockName) & !grepl('GQY', stockName), ":="(
+            upperLimit = -1,
+            lowerLimit = -1
+        )]
+
+    ## 10% 的涨跌停设置
+    res[(!grepl('G', stockName) | grepl('GQY', stockName)) & 
+        (!grepl('S|s', stockName)), ":="(
+            upperLimit = round(preCloseBadj * 1.1, 4),
+            lowerLimit = round(preCloseBadj * .9, 4)
+        )]
+
+    ## 5% 的涨跌停设置
+    res[(!grepl('G', stockName) | grepl('GQY', stockName)) & 
+        (grepl('S|s', stockName)), ":="(
+            upperLimit = round(preCloseBadj * 1.05, 4),
+            lowerLimit = round(preCloseBadj * .95, 4)
+        )]
+
+    ## 新股涨跌停为 NA
+    res[(!grepl('G', stockName) | grepl('GQY', stockName)) & 
+        (grepl('N', stockName)), ":="(
+            upperLimit = -1,
+            lowerLimit = -1
+        )]
+
+    res[upperLimit != -1 & 
+        closeBadj >= upperLimit * 0.99 &
+        high == close, isLimit := 'u']
+
+    res[lowerLimit != -1 & 
+        closeBadj <= lowerLimit * 1.01 &
+        low == close, isLimit := 'l']
+
+    res[upperLimit != 1 & lowerLimit != -1, ":="(
+        upperLimit = round(upperLimit / bAdj, 2),
+        lowerLimit = round(lowerLimit / bAdj, 2)
+        )]
+
+    ## 替代一下最高价和涨跌限制
+    res[high > upperLimit & 
+        upperLimit != -1, upperLimit := high]
+    res[low < lowerLimit & 
+        lowerLimit != -1, lowerLimit := low]
+        
+    return(res[, .(TradingDay, stockID, stockName,
+                   open, high, low, close,
+                   bAdj, 
+                   volume, turnover,
+                   status,
+                   upperLimit, lowerLimit, 
+                   isLimit)])
+}) %>% rbindlist()
+stopCluster(cl)
+
+dt[, stockName := gsub(' ', '', stockName)]
+dt[, stockName := gsub('Ａ', 'A', stockName)]
+dt[, stockName := gsub("Ｂ", "B", stockName)]
+
+dt[!grepl('S|s', stockName), ifST := 'n']
+dt[grepl('S|s', stockName), ifST := 'y']
+
+mysqlWrite(db = 'china_stocks_bar',
+           tbl = 'daily',
+           data = dt,
+           isTruncated = T)
+## =============================================================================
