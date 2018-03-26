@@ -363,7 +363,7 @@ cal_adj_factor <- function(stockID,
                      配股除权日 = NA)]
     } else if (nrow(dividendSina) == 0 & nrow(allotmentSina) != 0) {
         bonus <- allotmentSina
-        bonus[, ":="(除权除息日 = NA,
+        bonus[, ":="(除权除息日 = 配股除权日,
                      转送总比例 = 0,
                      现金分红比例 = 0)]
     } else {
@@ -636,32 +636,40 @@ for (id in allStocks$stockID) {
 ## =============================================================================
 ## 开始处理　daily 数据
 ## -----------------
-cl <- makeCluster(8, type = "FORK")
-dt <- parLapply(cl, allStocks[1:20]$stockID, function(id){
-    dt <- cal_adj_factor(id) %>% 
-        .[TradingDay > '2016-08-31']
+cl <- makeCluster(12, type = "FORK")
+dt <- parLapply(cl, allStocks$stockID, function(id){
+    dt <- cal_adj_factor(id)
+    if (nrow(dt) == 0) return(data.table())
+    dt <- dt[TradingDay > '2016-08-31']
 
     dtWind <- dtWindBar[stockID == id] %>% 
-            .[TradingDay <= '2016-08-31'] %>% 
-            .[, .(TradingDay, stockID, stockName = NA,
-                  open, high, low, close, 
-                  volume = volume * 100,   ## wind 数据库是 手, 千元
-                  turnover = turnover * 1000, bAdj, status)]
+            .[TradingDay <= '2016-08-31']
+    if (nrow(dtWind) != 0) {
+        dtWind <- dtWind[, .(TradingDay, stockID, stockName = NA,
+                             open, high, low, close, 
+                             volume = volume * 100,   ## wind 数据库是 手, 千元
+                             turnover = turnover * 1000, bAdj, status)]
+    }
 
-    res <- list(dt, dtWind) %>% rbindlist() %>% 
-        .[order(TradingDay)] %>% 
-        merge(., 
-              dt163Bar[stockID == id, 
-                      .(TradingDay, stockID, stockName)]
-              , by = c('TradingDay', 'stockID')
-              , all.x = T) %>% 
-        .[, ":="(
-            stockName = stockName.y,
-            stockName.x = NULL, 
-            stockName.y = NULL
-            )]
+    if (nrow(dtWind) == 0) {
+        res <- dt
+    } else {
+        res <- list(dt, dtWind) %>% rbindlist() %>% 
+            .[order(TradingDay)] %>% 
+            merge(., 
+                  dt163Bar[stockID == id, 
+                          .(TradingDay, stockID, stockName)]
+                  , by = c('TradingDay', 'stockID')
+                  , all.x = T) %>% 
+            .[, ":="(
+                stockName = stockName.y,
+                stockName.x = NULL, 
+                stockName.y = NULL
+                )]
+    }
 
-    if (res[, max(TradingDay)] > '2016-08-31') {
+    if (nrow(dtWind) != 0 &
+        res[, max(TradingDay)] > '2016-08-31') {
         res[TradingDay > '2016-08-31', 
             bAdj := round(bAdj * res[TradingDay <= '2016-08-31'][.N, bAdj]
                           , 6)]
