@@ -55,6 +55,26 @@ CREATE TABLE MarketIndex.stocks_index_from163(
 
 ## =============================================================================
 ## 南华商品指数
+CREATE TABLE MarketIndex.sw1_index(
+    TradingDay      DATE            NOT NULL,
+    indexID         CHAR(30)        NOT NULL,           ## 股票代码
+    indexName       CHAR(30)        NOT NULL,           ## 股票名称
+    ## -------------------------------------------------------------------------
+    open            DECIMAL(10,3),
+    high            DECIMAL(10,3),
+    low             DECIMAL(10,3),
+    close           DECIMAL(10,3),
+    volume          BIGINT,
+    turnover        DECIMAL(30,3),
+    ## -------------------------------------------------------------------------
+    PRIMARY KEY (TradingDay, indexID)
+) DEFAULT CHARSET=utf8;
+## =============================================================================
+
+
+
+## =============================================================================
+## 南华商品指数
 CREATE TABLE MarketIndex.Nanhua (
     TradingDay     DATE           NOT NULL,
     close          DECIMAL(10,3)  NULL,
