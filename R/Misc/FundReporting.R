@@ -26,21 +26,12 @@ ChinaFuturesCalendar <- fread("./data/ChinaFuturesCalendar/ChinaFuturesCalendar.
 currTradingDay <- ChinaFuturesCalendar[days <= format(Sys.Date(), '%Y%m%d')][nights < format(Sys.Date(), '%Y%m%d')][.N]
 ## =============================================================================
 
-# accountInfo <- data.table(accountID = c('TianMi1','TianMi3','YunYang1','FL_SimNow','YY_SimNow'),
-#                           accountCapital = c(4000000, 1000000, 2000000, 1000000, 1000000),
-#                           accountName = c('甜蜜1号','甜蜜3号','云扬1号','方莲模拟账户','YY模拟账户'),
-#                           managerID = c('Lin HuangGeng','Lin HuangGeng','Lin HuangGeng',
-#                                         'Fang Lian','Fang Lian'))
-# accountInfo <- data.table(accountID = c('TianMi1','TianMi2','TianMi3','YunYang1','HanFeng'),
-#                           accountCapital = c(4000000, 1300000,1000000, 2000000, 8000000),
-#                           accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号', '汉峰云鼎')
-#                           )
-accountInfo <- data.table(accountID = c('TianMi1','TianMi2','TianMi3','YunYang1',
-                                        'SimNow_YY'),
-                          accountCapital = c(4000000, 1300000,1000000, 2000000,
-                                             1000000),
-                          accountName = c('甜蜜1号','甜蜜2号','甜蜜3号','云扬1号',
-                                          'SimNow_YY')
+accountInfo <- data.table(accountID = c('TianMi2','TianMi3','YunYang1',
+                                        'SimNow_YY','SimNow_LXO'),
+                          accountCapital = c(1300000,1000000, 2000000,
+                                             1000000, 1000000),
+                          accountName = c('甜蜜2号','甜蜜3号','云扬1号',
+                                          'SimNow_YY', 'SimNow_LXO')
                           )
 logPath <- "/home/fl/myData/log/FundReporting"
 
@@ -53,12 +44,7 @@ if (file.exists(tempFile)) file.remove(tempFile)
 ## =============================================================================
 ## i = 1
 fetchFund <- function(i, author = FALSE) {
-  # mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.166')
-  if (grepl('SimNow', accountInfo[i,accountID])) {
-      mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.135')
-  } else {
-      mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.166')
-  }
+  mysql <- mysqlFetch(accountInfo[i,accountID], host = '192.168.1.135')
 
   reportAccount <- dbGetQuery(mysql,
     "select * from report_account_history
@@ -67,8 +53,8 @@ fetchFund <- function(i, author = FALSE) {
 
   if (nrow(reportAccount) == 0) return(NULL)
 
-  fee <- mysqlQuery(db = accountInfo[i,accountID],
-                    query = 'select * from fee')
+  fee <- dbGetQuery(mysql, 'select * from fee') %>% as.data.table()
+
   if (nrow(fee) != 0) {
     for (j in 1:nrow(fee)) {
       tempTradingDay <- fee[j, TradingDay]
@@ -98,11 +84,23 @@ fetchFund <- function(i, author = FALSE) {
                        基金净值 = currNav[1, NAV]
     )
   } else {
-    fundChg <- ifelse(nrow(reportAccount) > 1,
-                      round((reportAccount[.N, allMoney] -
-                               reportAccount[.N-1, allMoney]) /
-                              reportAccount[.N-1, allMoney], 4),
-                      0)
+    fundingInfo <- dbGetQuery(mysql,"select * from funding") %>%
+                as.data.table()
+
+    if (nrow(fundingInfo) == 0) {
+        fundChg <- ifelse(nrow(reportAccount) > 1,
+                          round((reportAccount[.N, allMoney] -
+                                   reportAccount[.N-1, allMoney]) /
+                                  reportAccount[.N-1, allMoney], 4),
+                          0)
+    } else {
+        fundChg <- ifelse(nrow(reportAccount) > 1,
+                          (reportAccount[.N, allMoney] / fundingInfo[, sum(shares)]) / 
+                          (reportAccount[.N-1, allMoney] / 
+                            fundingInfo[TradingDay < reportAccount[.N-1, TradingDay], sum(shares)]) - 1
+                          0)
+    }
+
     fund <- data.table(基金名称 = accountInfo[i, accountName]
                            #,基金经理 = accountInfo[i, managerID]
                            ,期货金额 = reportAccount[.N, totalMoney],
@@ -113,7 +111,7 @@ fetchFund <- function(i, author = FALSE) {
                                          reportAccount[.N, allMoney] -
                                            reportAccount[.N-1, allMoney],
                                          0),
-                           收益波动 = paste0(as.character(fundChg * 100),'%'),
+                           收益波动 = paste0(as.character(round(fundChg,4) * 100),'%'),
                            基金净值 = round(reportAccount[.N, allMoney] /
                                           accountInfo[i, accountCapital], 4)
     )
@@ -229,5 +227,3 @@ for (i in 1:nrow(accountInfo)) {
     fetchFund(i, author = TRUE)
   }
 }
-
-
