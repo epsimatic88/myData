@@ -226,17 +226,22 @@ allInstrumentID_today <- mysqlQuery(db = 'china_futures_bar',
                               query = paste("select distinct InstrumentID
                                             from minute where TradingDay =",
                                             tempTradingDay,
-                                            "and (volume != 0 or closeopeninterest != 0)"))
+                                            "and (volume > 1000 and closeopeninterest >= 10000)"))
 dtOiRank_today <- mysqlQuery(db = 'china_futures_bar',
                              query = paste("select distinct InstrumentID
                                      from oiRank where TradingDay = ",
                                      tempTradingDay))
-if (nrow(dtOiRank_today) < nrow(allInstrumentID_today)*.7) {
-  cat('## 当前交易日的数据似乎不全！！！\n')
+
+if (nrow(dtOiRank_today) < nrow(allInstrumentID_today)) {
+  cat('\n## 当前交易日的数据似乎不全！！！\n')
   cat('## allInstrumentID_today')
   print(allInstrumentID_today)
   cat('\n## dtOiRank_today')
   print(dtOiRank_today)
+  cat('\n## 不在爬虫数据里面的合约有:\n')
+  print(
+    allInstrumentID_today[! InstrumentID %in% dtOiRank_today$InstrumentID]
+  )
   cat("\n## ====================================== ##\n")
 }
 
@@ -296,13 +301,24 @@ if (! lastTradingDay[1,days] %in% dtVolumeMultiple[,TradingDay] |
 ## HiCloud
 ## =============================================================================
 
-accountInfo <- data.table(accountID = c('TianMi1','TianMi2','TianMi3',
-                                        'YunYang1', 'HanFeng'))
+accountInfo <- data.table(accountID = c('TianMi2','TianMi3',
+                                        'YunYang1', 
+                                        'YongAnLYB',
+                                        'XingZhengMHY',
+                                        'SimNow_YY'))
 
 checkSignal <- function(accountID) {
-  mysql <- mysqlFetch(accountID)
+  # mysql <- mysqlFetch(accountID)
+  # if (grepl('SimNow', accountID)) {
+  #     mysql <- mysqlFetch(accountID, host = '192.168.1.135')
+  # } else {
+  #     mysql <- mysqlFetch(accountID, host = '192.168.1.166')
+  # }
+  mysql <- mysqlFetch(accountID, host = '192.168.1.135')
+
   tradingSignal <- dbGetQuery(mysql, "select * from tradingSignal order by InstrumentID") %>%
-    as.data.table()
+    as.data.table() %>% 
+    .[, TradingDay := gsub('-', '', TradingDay)]
 
   ## ===========================================================================
   if (nrow(tradingSignal) == 0) {
@@ -311,7 +327,7 @@ checkSignal <- function(accountID) {
     cat("## ====================================== ##\n\n")
   } else {
     if (! lastTradingDay[1,days] %in% tradingSignal[,TradingDay]) {
-      cat('## 策略的信号数据未入库！！！\n')
+      cat('\n## 策略的信号数据未入库！！！\n')
       cat('## 请检查程序。\n')
       print(paste0('## 程序脚本定位于：==> ', accountID))
       cat("## ====================================== ##\n\n")
@@ -327,5 +343,3 @@ checkSignal <- function(accountID) {
 for (i in 1:nrow(accountInfo)) {
   checkSignal(accountInfo[i, accountID])
 }
-
-
