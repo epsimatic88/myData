@@ -20,7 +20,8 @@ for( conns in dbListConnections(MySQL()) ){
 ################################################################################
 mysql_user <- 'fl'
 mysql_pwd  <- 'abc@123'
-mysql_host <- "192.168.1.166"
+# mysql_host <- "192.168.1.166"
+mysql_host <- "192.168.1.135"
 mysql_port <- 3306
 
 #---------------------------------------------------
@@ -82,7 +83,7 @@ Sys.sleep(3)
 while (class(try(remDr$findElements("id", "a_myOwnItem")[[1]])) == "try-error") {
 
   tempClick <- remDr$findElements('id', 'rtab')[[1]]
-  tempClick$highlightElement()
+  # tempClick$highlightElement()
   for (i in 1:2) tempClick$clickElement()
   Sys.sleep(1)
 
@@ -91,7 +92,7 @@ while (class(try(remDr$findElements("id", "a_myOwnItem")[[1]])) == "try-error") 
   for (i in 1:2) id$clickElement()
   Sys.sleep(1)
   id$sendKeysToElement(list('320076588'))
-  Sys.sleep(1)
+  # Sys.sleep(1)
 
   pwd <- remDr$findElements('id', 'txtPassword2')[[1]]
   #pwd$highlightElement()
@@ -103,7 +104,7 @@ while (class(try(remDr$findElements("id", "a_myOwnItem")[[1]])) == "try-error") 
   #for (i in 1:2) pwd$clickElement()
   Sys.sleep(1)
   pwd$sendKeysToElement(list('218226'))
-  Sys.sleep(1)
+  # Sys.sleep(1)
 
   if (FALSE) {
     tempLogin <- remDr$findElements("xpath", "//*/*[text()='登录']")[[3]]
@@ -115,7 +116,7 @@ while (class(try(remDr$findElements("id", "a_myOwnItem")[[1]])) == "try-error") 
   tempLogin <- remDr$findElements("class", "z-btn")[[1]]
   #tempLogin$highlightElement()
   tempLogin$clickElement()
-  Sys.sleep(10)
+  Sys.sleep(5)
 
 
   if (class(try(remDr$findElements("id", "a_myOwnItem")[[1]])) != "try-error") {
@@ -185,11 +186,30 @@ try(
 ## =============================================================================
 # mysql <- mysqlFetch('HiCloud')
 mysql <- mysqlFetch('YunYang1')
-reportAccount <- dbGetQuery(mysql, "
+accountInfo <- dbGetQuery(mysql, "
                             select *
-                            from report_account_history
+                            from accountInfo
                             order by TradingDay
                             ") %>% as.data.table()
+if (nrow(accountInfo) > 1) {
+    reportAccount <- accountInfo
+    reportAccount[, ":="(
+      totalMoney = balance,
+      allMoney = asset,
+      flowMoney = flowCapital
+      )]
+} else {
+    reportAccount <- dbGetQuery(mysql,
+      "select * from report_account_history
+       order by TradingDay") %>%
+      as.data.table()
+}
+
+# reportAccount <- dbGetQuery(mysql, "
+#                             select *
+#                             from report_account_history
+#                             order by TradingDay
+#                             ") %>% as.data.table()
 fee <- dbGetQuery(mysql, "
                         select *
                         from fee
@@ -209,13 +229,20 @@ nav <- dbGetQuery(mysql, "
                   ") %>% as.data.table()
 
 nav[, Assets := (Futures + Currency + Bank)]
+
+funding <- dbGetQuery(mysql, "
+                      select *
+                      from funding
+                      order by TradingDay
+                      ") %>% as.data.table()
+    
 addInfo <- data.table(TradingDay = currTradingDay[1,as.character(as.Date(days,'%Y%m%d'))],
                       Futures = reportAccount[.N, totalMoney],
                       Currency = webData,
                       Bank = 10000,
                       Assets = reportAccount[.N, totalMoney] + webData + 10000,
-                      Shares = 2000000,
-                      NAV = (reportAccount[.N, totalMoney] + webData + 10000) / 2000000
+                      Shares = funding[, sum(shares)],
+                      NAV = (reportAccount[.N, totalMoney] + webData + 10000) / funding[, sum(shares)]
 )
 
 navUpdate <- rbind(nav[TradingDay != currTradingDay[1,as.character(as.Date(days,'%Y%m%d'))]], addInfo, fill = TRUE)
