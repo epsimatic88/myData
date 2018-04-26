@@ -23,25 +23,49 @@ suppressMessages({
 
 ## =============================================================================
 ## FL_SimNow =====> TianMi1
-fetchSignal <- function(fromDB, toDB) {
-  # fromDB <- 'TianMi1'
-  # toDB   <- 'FL_SimNow'
-
-  mysql <- mysqlFetch(fromDB, host = '192.168.1.166')
+fetchSignal <- function(fromDB, toDB,
+                        fromHost = '192.168.1.166', toHost = '192.168.1.166') {
+  mysql <- mysqlFetch(fromDB, host = fromHost)
   fromSignal <- dbGetQuery(mysql, "select * from tradingSignal") %>%
     as.data.table() %>%
     .[, TradingDay := gsub('-','',TradingDay)] %>%
     .[TradingDay == gsub('-','',currTradingDay[1,nights])]
+  if (toDB == 'SimNow_LXO') {
+    fromSignal[, volume := volume * 3]
+  }
 
   if (nrow(fromSignal) == 0) return(NULL)
 
-  mysql <- mysqlFetch(toDB, host = '192.168.1.166')
+  mysql <- mysqlFetch(toDB, host = toHost)
   dbSendQuery(mysql, "truncate table tradingSignal")
   dbWriteTable(mysql, 'tradingSignal',
                fromSignal, row.names = FALSE, append = TRUE)
 }
 ## =============================================================================
 
-fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_LXO')
-fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_FL')
-fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_YY')
+# fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_LXO')
+# fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_FL')
+# fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_YY')
+
+fetchSignal(fromDB = 'TianMi3', toDB = 'SimNow_LXO', 
+            fromHost = '192.168.1.135', toHost = '192.168.1.135')
+# fetchSignal(fromDB = 'YunYang1', toDB = 'SimNow_FL', toHost = '192.168.1.135')
+# fetchSignal(fromDB = 'SimNow_FL', toDB = 'SimNow_YY', toHost = '192.168.1.135')
+fetchSignal(fromDB = 'SimNow_YY', toDB = 'SimNow_FL', 
+            fromHost = '192.168.1.135', toHost = '192.168.1.135')
+
+## =============================================================================
+xifu <- mysqlQuery(db = 'china_futures_bar',
+                  query = paste0('select TradingDay, Main_contract as InstrumentID from main_contract_daily where TradingDay = ', lastTradingDay[1, gsub('-', '', days)]))
+xifu[, ':='(
+  strategyID = 'OIStrategy'
+  ,volume = 0
+  ,direction = 0
+  ,param = 0
+  )]
+xifu <- xifu[!grepl("IC|IH|IF|TF|^[T]|wr", InstrumentID)]
+mysql <- mysqlFetch(db = 'XiFu', host = '192.168.1.135')
+dbSendQuery(mysql, 'truncate table tradingSignal')
+dbWriteTable(mysql, 'tradingSignal', xifu, row.names = F, append = T)
+dbDisconnect(mysql)
+## =============================================================================
